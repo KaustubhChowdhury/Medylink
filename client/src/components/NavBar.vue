@@ -1,48 +1,51 @@
 <template>
-  <nav class="sticky top-0 z-50 bg-brand-bg/80 dark:bg-slate-900/80 backdrop-blur-md">
-    <div class="max-w-7xl mx-auto px-4 md:px-6 lg:px-8 h-20 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <router-link to="/" class="text-2xl font-serif font-bold text-neutral-900 dark:text-white tracking-tight flex items-center gap-2">
-          <svg class="w-6 h-6 text-[#98A2FF]" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
-          MedLink
-        </router-link>
-      </div>
+  <nav class="sticky top-0 z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border-b border-slate-200/50 dark:border-slate-700/50">
+    <div class="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
+      <!-- Logo -->
+      <router-link to="/" class="flex items-center gap-3 group">
+        <div class="w-10 h-10 rounded-xl bg-gradient-premium flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300 shadow-lg">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <span class="text-2xl font-serif font-bold bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">MedLink</span>
+      </router-link>
 
-      <div class="flex items-center gap-6">
+      <!-- Nav Links -->
+      <div class="flex items-center gap-8">
         <!-- Patient Links -->
         <template v-if="store.currentUser?.role === 'patient'">
-          <router-link to="/dashboard" class="hidden md:block text-sm font-medium text-slate-600 hover:text-neutral-900 dark:text-slate-400 dark:hover:text-white transition-colors">Dashboard</router-link>
-          <router-link to="/discover" class="hidden md:block text-sm font-medium text-slate-600 hover:text-neutral-900 dark:text-slate-400 dark:hover:text-white transition-colors">Find Doctors</router-link>
-          <router-link to="/compare" class="hidden md:block text-sm font-medium text-slate-600 hover:text-neutral-900 dark:text-slate-400 dark:hover:text-white transition-colors">Compare</router-link>
-          <router-link to="/history" class="hidden md:block text-sm font-medium text-slate-600 hover:text-neutral-900 dark:text-slate-400 dark:hover:text-white transition-colors">History</router-link>
+          <router-link to="/dashboard" class="hidden md:block text-sm font-semibold text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors duration-200">Dashboard</router-link>
+          <router-link to="/discover" class="hidden md:block text-sm font-semibold text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors duration-200">Find Doctors</router-link>
+          <router-link to="/compare" class="hidden md:block text-sm font-semibold text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors duration-200">Compare</router-link>
+          <router-link to="/history" class="hidden md:block text-sm font-semibold text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors duration-200">History</router-link>
         </template>
         
         <!-- Doctor Links -->
         <template v-if="store.currentUser?.role === 'doctor'">
-          <router-link to="/dashboard" class="hidden md:block text-sm font-medium text-slate-600 hover:text-neutral-900 dark:text-slate-400 dark:hover:text-white transition-colors">Dashboard</router-link>
-          <router-link to="/appointments" class="hidden md:block text-sm font-medium text-slate-600 hover:text-neutral-900 dark:text-slate-400 dark:hover:text-white transition-colors">My Appointments</router-link>
+          <router-link to="/dashboard" class="hidden md:block text-sm font-semibold text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors duration-200">Dashboard</router-link>
+          <router-link to="/appointments" class="hidden md:block text-sm font-semibold text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors duration-200">My Appointments</router-link>
         </template>
 
         <!-- Admin Links -->
         <template v-if="store.currentUser?.role === 'admin'">
-          <router-link to="/dashboard" class="hidden md:block text-sm font-medium text-slate-600 hover:text-neutral-900 dark:text-slate-400 dark:hover:text-white transition-colors">Dashboard</router-link>
-          <router-link to="/shortage" class="hidden md:block text-sm font-medium text-slate-600 hover:text-neutral-900 dark:text-slate-400 dark:hover:text-white transition-colors">Shortage Map</router-link>
+          <router-link to="/dashboard" class="hidden md:block text-sm font-semibold text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors duration-200">Dashboard</router-link>
+          <router-link to="/shortage" class="hidden md:block text-sm font-semibold text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors duration-200">Shortage Map</router-link>
         </template>
 
-        <div class="flex items-center gap-3 ml-2">
+        <!-- Right Side -->
+        <div class="flex items-center gap-4 ml-4">
           <ThemeToggle />
           
           <template v-if="store.currentUser">
-            <div class="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-full pl-1 pr-4 py-1 shadow-sm">
-              <div class="w-8 h-8 rounded-full bg-[#FCE0A2] text-neutral-900 flex items-center justify-center font-bold text-sm">
-                {{ store.currentUser.name.charAt(0) }}
+            <div class="flex items-center gap-3 bg-gradient-to-r from-primary-50 to-accent-50 dark:from-slate-800 dark:to-slate-800 rounded-full pl-1 pr-4 py-1.5 shadow-card border border-primary-100/50 dark:border-slate-700/50">
+              <div class="w-8 h-8 rounded-full bg-gradient-accent text-slate-900 flex items-center justify-center font-bold text-sm shadow-md">
+                {{ store.currentUser.name.charAt(0).toUpperCase() }}
               </div>
-              <button @click="handleLogout" class="text-sm font-medium text-slate-600 hover:text-red-500 transition-colors ml-2">Log out</button>
+              <button @click="handleLogout" class="text-sm font-semibold text-slate-600 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 transition-colors duration-200">Log out</button>
             </div>
           </template>
           <template v-else>
-            <router-link to="/login" class="text-sm font-medium hover:text-neutral-900 transition-colors">Login</router-link>
-            <router-link to="/signup" class="btn-primary !px-5 !py-2 !text-sm">Sign Up</router-link>
+            <router-link to="/login" class="text-sm font-semibold text-slate-600 hover:text-primary-600 dark:text-slate-400 dark:hover:text-primary-400 transition-colors duration-200">Login</router-link>
+            <router-link to="/signup" class="btn-primary !px-6 !py-2 !text-sm">Sign Up</router-link>
           </template>
         </div>
       </div>
