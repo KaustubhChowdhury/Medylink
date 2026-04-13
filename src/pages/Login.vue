@@ -17,28 +17,53 @@
         <p class="text-text-mid text-sm mt-1">Healthcare, reimagined.</p>
       </div>
 
-      <!-- Login Card -->
+      <!-- Login / Signup Card -->
       <div class="bg-white rounded-3xl shadow-card p-8 border border-brand-pale/20 anim-fade-up anim-delay-1">
-        <form @submit.prevent="handleLogin" class="space-y-5">
-          <!-- Role -->
+        <!-- Tabs -->
+        <div class="flex mb-6 border-b border-brand-pale/30">
+          <button @click="isLoginMode = true" class="flex-1 pb-3 text-sm font-bold transition-colors" :class="isLoginMode ? 'text-brand-dark border-b-2 border-brand-dark' : 'text-text-mid hover:text-brand-dark'">Sign In</button>
+          <button @click="isLoginMode = false" class="flex-1 pb-3 text-sm font-bold transition-colors" :class="!isLoginMode ? 'text-brand-dark border-b-2 border-brand-dark' : 'text-text-mid hover:text-brand-dark'">Sign Up</button>
+        </div>
+
+        <form @submit.prevent="handleSubmit" class="space-y-5">
+          <!-- Role Selection -->
           <div>
             <label class="block text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-2">I am a</label>
-            <div class="grid grid-cols-3 gap-2">
-              <button type="button" v-for="r in roles" :key="r.value" @click="role = r.value"
+            <div class="grid gap-2" :class="isLoginMode ? 'grid-cols-3' : 'grid-cols-2'">
+              <button type="button" @click="role = 'patient'"
                 class="py-3 rounded-xl text-xs font-bold uppercase tracking-wide border-2 transition-all"
-                :class="role === r.value
-                  ? 'bg-brand-dark text-white border-brand-dark shadow-btn scale-[1.02]'
-                  : 'bg-cream text-text-mid border-brand-pale/40 hover:border-brand-green'">
-                {{ r.label }}
+                :class="role === 'patient' ? 'bg-brand-dark text-white border-brand-dark shadow-btn scale-[1.02]' : 'bg-cream text-text-mid border-brand-pale/40 hover:border-brand-green'">
+                {{ isLoginMode ? 'Patient' : 'Citizen' }}
+              </button>
+              <button type="button" @click="role = 'doctor'"
+                class="py-3 rounded-xl text-xs font-bold uppercase tracking-wide border-2 transition-all"
+                :class="role === 'doctor' ? 'bg-brand-dark text-white border-brand-dark shadow-btn scale-[1.02]' : 'bg-cream text-text-mid border-brand-pale/40 hover:border-brand-green'">
+                Doctor
+              </button>
+              <button v-if="isLoginMode" type="button" @click="role = 'admin'"
+                class="py-3 rounded-xl text-xs font-bold uppercase tracking-wide border-2 transition-all"
+                :class="role === 'admin' ? 'bg-brand-dark text-white border-brand-dark shadow-btn scale-[1.02]' : 'bg-cream text-text-mid border-brand-pale/40 hover:border-brand-green'">
+                Admin
               </button>
             </div>
           </div>
 
+          <!-- Sign Up Additional Fields -->
+          <template v-if="!isLoginMode">
+            <div>
+              <label class="block text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-2">Full Name</label>
+              <input v-model="name" type="text"
+                class="w-full bg-cream border-2 border-brand-pale/40 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-green transition-colors"
+                placeholder="Jane Doe" required />
+            </div>
+          </template>
+
+          <!-- Common Fields -->
           <div>
-            <label class="block text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-2">User ID</label>
-            <input v-model="userId" type="text"
+            <label class="block text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-2">Email Address</label>
+            <input v-model="userId" type="email"
               class="w-full bg-cream border-2 border-brand-pale/40 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-green transition-colors"
-              placeholder="Enter your ID" required />
+              placeholder="Enter your email" required />
           </div>
           <div>
             <label class="block text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-2">Password</label>
@@ -49,13 +74,13 @@
 
           <button type="submit"
             class="w-full bg-gradient-to-r from-brand-dark to-brand-mid text-white font-bold rounded-xl py-3.5 text-sm hover:brightness-110 transition-all shadow-btn active:scale-[0.98]">
-            Sign In
+            {{ isLoginMode ? 'Sign In' : 'Create Account' }}
           </button>
         </form>
       </div>
 
       <!-- Test Accounts -->
-      <div class="mt-6 anim-fade-up anim-delay-2">
+      <div v-if="isLoginMode" class="mt-6 anim-fade-up anim-delay-2">
         <p class="text-center text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-3">Quick Access — Test Accounts</p>
         <div class="grid grid-cols-3 gap-3">
           <button @click="quickLogin('patient')"
@@ -92,20 +117,28 @@
   </div>
 </template>
 <script setup>
-import { ref, inject } from 'vue'
+import { ref, inject, watch } from 'vue'
 import { UserIcon, BriefcaseIcon, ShieldCheckIcon } from '@heroicons/vue/24/outline'
 
-const userId = ref('')
+const isLoginMode = ref(true)
+const name = ref('')
+const userId = ref('') // Used as email
 const password = ref('')
 const role = ref('patient')
+
 const login = inject('login')
 
-const roles = [
-  { value: 'patient', label: 'Patient' },
-  { value: 'doctor', label: 'Doctor' },
-  { value: 'admin', label: 'Admin' },
-]
+watch(isLoginMode, (newVal) => {
+  if (!newVal && role.value === 'admin') {
+    role.value = 'patient' // Prevent admin sign up visually
+  }
+})
 
-const handleLogin = () => login(role.value)
+const handleSubmit = () => {
+  // In a real app we'd call /signup or /login API here.
+  // For now, we simulate success via injected portal mock.
+  login(role.value)
+}
+
 const quickLogin = (r) => login(r)
 </script>

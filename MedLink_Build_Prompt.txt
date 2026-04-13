@@ -1,0 +1,659 @@
+================================================================
+  MEDLINK — SMART HEALTHCARE ACCESS PLATFORM
+  Hackathon Build Prompt · Cursor / Windsurf / Copilot
+================================================================
+
+----------------------------------------------------------------
+SECTION 1 — ROLE & MINDSET
+----------------------------------------------------------------
+
+You are a senior full-stack engineer building a demo-ready
+hackathon project called "MedLink." Your priorities, in order:
+
+  1. Working features over perfect architecture
+  2. Clean, polished UI over feature breadth
+  3. Simplicity over scalability
+
+Do not over-engineer. Do not add libraries not listed below.
+Build one file at a time. Stop after each step and confirm
+before proceeding to the next.
+
+----------------------------------------------------------------
+SECTION 2 — TECHNOLOGY CONSTRAINTS (NON-NEGOTIABLE)
+----------------------------------------------------------------
+
+✅ ALLOWED:
+  Frontend  → Vue.js 3 (Composition API)
+  Styling   → Tailwind CSS (utility classes only)
+  Backend   → Plain Node.js ONLY (built-in http module)
+  Database  → SQLite via the 'better-sqlite3' npm package
+
+❌ STRICTLY BANNED — DO NOT USE, IMPORT, OR MENTION:
+
+  Frontend   React, Next.js, Angular, Svelte, SvelteKit,
+             SolidJS, jQuery, Alpine.js, Preact
+
+  Backend    Express.js, Fastify, Koa, Hapi, NestJS,
+             Flask, Django, FastAPI, Firebase Functions,
+             AWS Lambda, any Node.js HTTP framework
+
+  Database   MongoDB, Firebase Firestore, Supabase, Redis,
+             PlanetScale, DynamoDB, Cassandra, MySQL
+             (SQLite only — no other DB)
+
+  Styling    Bootstrap, Bulma, Materialize, Material UI,
+             Chakra UI, Ant Design, any component library
+
+⚠️  If unsure whether something is allowed → default to NO.
+    Implement it with Vue + Tailwind + plain Node.js instead.
+
+----------------------------------------------------------------
+SECTION 3 — PROJECT OVERVIEW
+----------------------------------------------------------------
+
+MedLink is a healthcare access platform that helps patients:
+  - Discover and compare doctors by specialty, price, area
+  - Book appointments and manage their schedule
+  - View their personal medical history as a timeline
+  - See which areas have doctor shortages (key differentiator)
+
+USER ROLES:
+  patient  → books appointments, views history, compares prices
+  doctor   → views their bookings (read-only in this demo)
+  admin    → manages area data and shortage flags
+
+----------------------------------------------------------------
+SECTION 4 — FILE STRUCTURE
+----------------------------------------------------------------
+
+medlink/
+├── server/
+│   ├── server.js          ← Plain Node.js HTTP server
+│   ├── db.js              ← SQLite connection + schema init
+│   ├── seed.js            ← Seed script (run once)
+│   ├── routes/
+│   │   ├── auth.js        ← /signup /login
+│   │   ├── doctors.js     ← /doctors /doctors/:id
+│   │   ├── areas.js       ← /areas
+│   │   ├── appointments.js← /book-appointment /appointments
+│   │   └── history.js     ← /patient-history /add-record
+│   └── package.json
+├── client/
+│   ├── index.html
+│   ├── src/
+│   │   ├── main.js
+│   │   ├── router.js
+│   │   ├── store.js
+│   │   ├── api.js         ← All fetch() calls in one place
+│   │   ├── components/
+│   │   │   ├── NavBar.vue
+│   │   │   ├── DoctorCard.vue
+│   │   │   ├── AppointmentCard.vue
+│   │   │   ├── AreaBadge.vue
+│   │   │   └── ThemeToggle.vue
+│   │   └── views/
+│   │       ├── LoginView.vue
+│   │       ├── SignupView.vue
+│   │       ├── DashboardView.vue
+│   │       ├── DiscoveryView.vue
+│   │       ├── CompareView.vue
+│   │       ├── AppointmentView.vue
+│   │       ├── HistoryView.vue
+│   │       └── ShortageView.vue
+│   └── tailwind.config.js
+└── README.md
+
+----------------------------------------------------------------
+SECTION 5 — DATABASE SCHEMA
+----------------------------------------------------------------
+
+Initialize all tables in db.js using CREATE TABLE IF NOT EXISTS.
+Use better-sqlite3 (synchronous API — no async/await needed).
+
+-- USERS
+CREATE TABLE IF NOT EXISTS users (
+  id       INTEGER PRIMARY KEY AUTOINCREMENT,
+  name     TEXT    NOT NULL,
+  email    TEXT    UNIQUE NOT NULL,
+  password TEXT    NOT NULL,          -- bcrypt hash
+  role     TEXT    CHECK(role IN ('patient','doctor','admin'))
+                   DEFAULT 'patient'
+);
+
+-- DOCTORS
+CREATE TABLE IF NOT EXISTS doctors (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id      INTEGER REFERENCES users(id),
+  name         TEXT    NOT NULL,
+  specialty    TEXT    NOT NULL,
+  price        INTEGER NOT NULL,      -- consultation fee in ₹
+  area_id      INTEGER REFERENCES areas(id),
+  available    INTEGER DEFAULT 1      -- 1 = available, 0 = unavailable
+);
+
+-- AREAS
+CREATE TABLE IF NOT EXISTS areas (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  name         TEXT    NOT NULL,
+  doctor_count INTEGER DEFAULT 0,
+  shortage     INTEGER DEFAULT 0      -- 1 = shortage flagged
+);
+
+-- APPOINTMENTS
+CREATE TABLE IF NOT EXISTS appointments (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER REFERENCES users(id),
+  doctor_id  INTEGER REFERENCES doctors(id),
+  date       TEXT    NOT NULL,        -- ISO date string YYYY-MM-DD
+  time       TEXT    NOT NULL,        -- e.g. "10:30 AM"
+  status     TEXT    DEFAULT 'upcoming'
+             CHECK(status IN ('upcoming','completed','cancelled'))
+);
+
+-- MEDICAL_HISTORY
+CREATE TABLE IF NOT EXISTS medical_history (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER REFERENCES users(id),
+  title      TEXT    NOT NULL,        -- e.g. "Routine Checkup"
+  record     TEXT    NOT NULL,        -- free text notes
+  condition  TEXT,                    -- e.g. "Hypertension"
+  date       TEXT    NOT NULL         -- ISO date string
+);
+
+----------------------------------------------------------------
+SECTION 6 — BACKEND (PLAIN NODE.JS)
+----------------------------------------------------------------
+
+Use ONLY Node.js built-in modules:
+  http, url, fs, crypto
+
+Parse request body manually:
+  const body = await new Promise(resolve => {
+    let data = '';
+    req.on('data', chunk => data += chunk);
+    req.on('end', () => resolve(JSON.parse(data || '{}')));
+  });
+
+Route dispatch pattern in server.js:
+  - Parse method + pathname from req.url
+  - Match against route handlers imported from routes/
+  - Return JSON with correct Content-Type header
+  - Return { error: "message" } + correct status on failure
+
+CORS headers (add to every response):
+  Access-Control-Allow-Origin: http://localhost:5173
+  Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS
+  Access-Control-Allow-Headers: Content-Type, Authorization
+
+JWT:
+  - Use the 'jsonwebtoken' npm package
+  - Sign tokens with a hardcoded secret: "medlink_secret_2024"
+  - Token payload: { id, role, name }
+  - Middleware: parse Authorization: Bearer <token> header,
+    attach decoded user to req.user
+  - Protect all routes except /signup and /login
+
+REQUIRED API ENDPOINTS:
+
+  POST   /signup              body: { name, email, password, role }
+  POST   /login               body: { email, password }
+                              returns: { token, user }
+
+  GET    /doctors             query: ?area=&specialty=&maxPrice=
+  GET    /doctors/:id
+
+  GET    /areas               returns all areas with shortage flag
+  GET    /areas/:id/doctors
+
+  POST   /book-appointment    body: { doctor_id, date, time }
+                              auth: patient only
+  GET    /appointments        auth: returns current user's appointments
+  PUT    /appointments/:id/cancel
+
+  GET    /patient-history     auth: returns current user's history
+  POST   /add-record          body: { title, record, condition, date }
+                              auth: patient only
+
+  GET    /compare?ids=1,2,3   returns doctor details for price comparison
+
+ERROR FORMAT (consistent across all endpoints):
+  { "error": "Human-readable message" }  + HTTP status code
+
+----------------------------------------------------------------
+SECTION 7 — SEED DATA (seed.js)
+----------------------------------------------------------------
+
+Run with: node seed.js
+Check if data already exists before inserting (idempotent).
+
+AREAS (6 total):
+  Koramangala    → doctor_count: 8,  shortage: 0
+  Whitefield     → doctor_count: 2,  shortage: 1
+  HSR Layout     → doctor_count: 5,  shortage: 0
+  Electronic City→ doctor_count: 1,  shortage: 1
+  Indiranagar    → doctor_count: 6,  shortage: 0
+  Bannerghatta   → doctor_count: 0,  shortage: 1
+
+DOCTORS (8 total, spread across areas):
+  Dr. Ayesha Khan      Cardiologist      ₹800   Koramangala  available
+  Dr. Rohan Verma      General Physician ₹300   HSR Layout   available
+  Dr. Sneha Pillai     Dermatologist     ₹600   Indiranagar  available
+  Dr. Arjun Nair       Orthopedic        ₹900   Whitefield   available
+  Dr. Meera Iyer       Pediatrician      ₹500   Koramangala  available
+  Dr. Kabir Singh      Neurologist       ₹1200  Indiranagar  unavailable
+  Dr. Priya Menon      Gynecologist      ₹700   HSR Layout   available
+  Dr. Dev Sharma       General Physician ₹250   Electronic City available
+
+USERS (2 demo patients + 1 admin):
+  patient@demo.com   password: demo1234   role: patient
+  patient2@demo.com  password: demo1234   role: patient
+  admin@demo.com     password: admin1234  role: admin
+
+MEDICAL HISTORY (for patient@demo.com, 4 records):
+  2024-01-15  "Annual Checkup"     Condition: Hypertension
+  2024-03-22  "Follow-up Visit"    Condition: Hypertension
+  2024-06-10  "Blood Test Results" Condition: None
+  2024-09-05  "Skin Consultation"  Condition: Eczema
+
+APPOINTMENTS (for patient@demo.com, 3 records):
+  1 upcoming  Dr. Ayesha Khan   2025-02-20  10:00 AM
+  1 completed Dr. Rohan Verma   2024-12-01  11:30 AM
+  1 cancelled Dr. Sneha Pillai  2024-11-15  3:00 PM
+
+----------------------------------------------------------------
+SECTION 8 — FRONTEND STORE (store.js)
+----------------------------------------------------------------
+
+Use Vue reactive(). Export one global store with:
+
+  State:
+    currentUser      Object|null   { id, name, role, email }
+    token            String|null   JWT from login
+    doctors          Array
+    areas            Array
+    appointments     Array
+    history          Array
+    compareList      Array         max 3 doctors for comparison
+    darkMode         Boolean       persisted to localStorage
+
+  Actions (plain functions):
+    setUser(user, token)
+    logout()
+    toggleDarkMode()
+    addToCompare(doctor)      → max 3, show toast if full
+    removeFromCompare(id)
+    fetchDoctors(filters)
+    fetchAreas()
+    fetchAppointments()
+    fetchHistory()
+
+  On app mount:
+    - Read token from localStorage, validate, restore session
+    - Read darkMode from localStorage, apply to <html> class
+
+----------------------------------------------------------------
+SECTION 9 — COLOR SYSTEM & DESIGN TOKENS
+----------------------------------------------------------------
+
+MedLink uses a light/dark dual-mode system. Dark mode is
+toggled via a class on <html>: class="dark"
+
+Configure in tailwind.config.js:
+  darkMode: 'class'
+
+LIGHT MODE:
+  Page background    #F8FAFC    (slate-50)
+  Card surface       #FFFFFF
+  Card border        #E2E8F0    (slate-200)
+  Primary            #2563EB    (blue-600)
+  Primary hover      #1D4ED8    (blue-700)
+  Accent             #F97316    (orange-500)
+  Text primary       #0F172A    (slate-900)
+  Text secondary     #64748B    (slate-500)
+  Success            #16A34A    (green-600)
+  Warning            #D97706    (amber-600)
+  Danger             #DC2626    (red-600)
+
+DARK MODE:
+  Page background    #0F172A    (slate-900)
+  Card surface       #1E293B    (slate-800)
+  Card border        #334155    (slate-700)
+  Primary            #3B82F6    (blue-500)
+  Primary hover      #60A5FA    (blue-400)
+  Accent             #FB923C    (orange-400)
+  Text primary       #F1F5F9    (slate-100)
+  Text secondary     #94A3B8    (slate-400)
+
+TYPOGRAPHY:
+  Font: Inter (load from Google Fonts in index.html)
+  Headings: font-weight 600, letter-spacing -0.01em
+  Body: font-weight 400, line-height 1.6
+  Mono (prices, IDs): font-family monospace
+
+COMPONENT RULES (Tailwind classes):
+  Cards:        rounded-2xl border shadow-sm p-5
+                dark:bg-slate-800 dark:border-slate-700
+  Buttons:      rounded-xl font-medium transition-all
+  Primary btn:  bg-blue-600 hover:bg-blue-700 text-white
+                dark:bg-blue-500 dark:hover:bg-blue-400
+  Ghost btn:    border border-slate-200 hover:bg-slate-50
+                dark:border-slate-700 dark:hover:bg-slate-800
+  Inputs:       rounded-xl border border-slate-200 px-4 py-2.5
+                focus:ring-2 focus:ring-blue-500
+                dark:bg-slate-800 dark:border-slate-700
+  Badges:       rounded-full text-xs font-medium px-2.5 py-1
+  Shortage:     bg-red-50 text-red-700 border border-red-200
+                dark:bg-red-950 dark:text-red-400
+
+----------------------------------------------------------------
+SECTION 10 — FEATURE SPECIFICATIONS
+----------------------------------------------------------------
+
+── 10A. NAVBAR ────────────────────────────────────────────────
+
+  Sticky top. Left: MedLink logo + wordmark.
+  Right: nav links (role-aware) + ThemeToggle + avatar/logout.
+
+  Patient links:  Dashboard · Find Doctors · Compare · History
+  Doctor links:   Dashboard · My Appointments
+  Admin links:    Dashboard · Areas · Shortage Map
+  Unauthenticated: Login · Sign Up only
+
+── 10B. LOGIN / SIGNUP (/login, /signup) ──────────────────────
+
+  Centered card layout. Clean form — no clutter.
+  Login: email + password + "Sign in" button
+  Signup: name + email + password + role selector + "Create account"
+
+  On success: store token in localStorage, redirect to /dashboard.
+  Show inline field-level error messages on failure.
+  Add "Use demo account" button that fills email/password for fast demo.
+
+── 10C. DASHBOARD (/dashboard) ────────────────────────────────
+
+  Greeting: "Good morning, [name]. How are you feeling today?"
+  (morning/afternoon/evening based on time)
+
+  4 stat cards in a row:
+    Upcoming Appointments · Doctors Nearby · Areas with Shortage · Records
+
+  Search bar (full width): searches doctors by name or specialty,
+  navigates to /discover with query prefilled.
+
+  Next appointment card (if any):
+    Doctor name, specialty, date, time, status badge, [View All] link.
+
+  Area availability strip: horizontal scroll of AreaBadge components
+  showing each area with a green (available) or red (shortage) dot.
+
+── 10D. DOCTOR DISCOVERY (/discover) ──────────────────────────
+
+  Filter bar (sticky):
+    Area dropdown · Specialty dropdown · Max Price slider · Available only toggle
+
+  Responsive grid: 1 col mobile → 2 col tablet → 3 col desktop
+
+  DoctorCard shows:
+    Avatar initials circle (colored by specialty)
+    Name · Specialty · Area
+    Price (mono font, prominent) · Availability badge
+    [+ Compare] button (adds to compareList, max 3)
+    [Book Appointment] button → navigates to /book?doctor=id
+
+  If filters return 0 results: empty state with "No doctors found
+  in this area" and a link to the Shortage view.
+
+── 10E. PRICE COMPARISON (/compare) ───────────────────────────
+
+  Access via: clicking [+ Compare] on DoctorCards (max 3 selected).
+
+  Side-by-side comparison table:
+    Rows: Specialty · Area · Price · Availability · Rating (mock)
+    Highlight cheapest price cell in green.
+    [Book] button under each column.
+    [Clear] button to reset compareList.
+
+  If compareList is empty: prompt to go to /discover and add doctors.
+
+── 10F. APPOINTMENT BOOKING (/book) ───────────────────────────
+
+  Step 1 — Doctor summary card (pre-filled from query param)
+  Step 2 — Date picker: show next 7 days as clickable pills
+  Step 3 — Time slot grid: show available slots (mock: 9AM–5PM, 1hr)
+           Disable already-booked slots (check appointments table)
+  Step 4 — Confirm: show summary card + [Confirm Booking] button
+
+  On confirm: POST /book-appointment → show success toast →
+  redirect to /appointments.
+
+── 10G. APPOINTMENTS (/appointments) ──────────────────────────
+
+  Tabs: Upcoming · Completed · Cancelled
+
+  Each AppointmentCard:
+    Doctor name + specialty · Date + time · Status badge
+    [Cancel] button on upcoming appointments (with confirm dialog)
+
+── 10H. MEDICAL HISTORY (/history) ────────────────────────────
+
+  Vertical timeline UI:
+    - Left line with dot markers
+    - Each entry: date (muted) · title (bold) · condition badge · record text
+    - Sorted newest first
+
+  [+ Add Record] button → opens inline form:
+    title · record · condition · date
+    POST /add-record → append to timeline without page reload.
+
+── 10I. DOCTOR SHORTAGE MAP (/shortage) ───────────────────────
+
+  This is the key differentiator — make it visually clear.
+
+  Header: "Areas with limited healthcare access"
+
+  Grid of AreaBadge cards, each showing:
+    Area name · Doctor count
+    Status: "No doctors" (red) / "Limited" (amber) / "Good coverage" (green)
+    (derived from doctor_count: 0=no doctors, 1–2=limited, 3+=good)
+
+  Below the grid: shortage summary banner
+    "X areas currently have no available doctors.
+     Showing nearest alternatives."
+
+  For each shortage area, show 2 nearest available doctors
+  (nearest = lowest price, same city, as a simple proxy).
+
+  [Flag Shortage] button (admin only) → toggles shortage flag via API.
+
+----------------------------------------------------------------
+SECTION 11 — ROUTING & GUARDS
+----------------------------------------------------------------
+
+Use Vue Router 4 (hash mode for no-server-needed client routing).
+
+Routes:
+  /              → redirect to /dashboard if logged in, else /login
+  /login         → LoginView
+  /signup        → SignupView
+  /dashboard     → DashboardView
+  /discover      → DiscoveryView
+  /compare       → CompareView
+  /book          → AppointmentView  (query: ?doctor=id)
+  /appointments  → AppointmentsView
+  /history       → HistoryView      (patient only)
+  /shortage      → ShortageView
+
+Navigation guards:
+  - Redirect to /login if no valid token
+  - Redirect non-patients away from /history
+  - Redirect non-admins away from admin-only actions
+
+----------------------------------------------------------------
+SECTION 12 — API LAYER (api.js)
+----------------------------------------------------------------
+
+All fetch() calls must go through api.js. Never call fetch()
+directly from a component.
+
+Base URL: http://localhost:3001
+
+Structure:
+  const BASE = 'http://localhost:3001'
+
+  function authHeaders() {
+    const token = localStorage.getItem('token')
+    return { 'Content-Type': 'application/json',
+             'Authorization': `Bearer ${token}` }
+  }
+
+  export const api = {
+    auth: {
+      login(email, password) { ... },
+      signup(name, email, password, role) { ... }
+    },
+    doctors: {
+      list(filters) { ... },
+      get(id) { ... },
+      compare(ids) { ... }
+    },
+    areas: {
+      list() { ... },
+      doctors(id) { ... }
+    },
+    appointments: {
+      list() { ... },
+      book(doctor_id, date, time) { ... },
+      cancel(id) { ... }
+    },
+    history: {
+      list() { ... },
+      add(record) { ... }
+    }
+  }
+
+----------------------------------------------------------------
+SECTION 13 — BUILD ORDER (STEP BY STEP)
+----------------------------------------------------------------
+
+Build in this exact order. Stop after each step, verify it
+works, then proceed. Do not skip ahead.
+
+  Step 1  → server/package.json
+            Install: better-sqlite3, jsonwebtoken, bcryptjs
+
+  Step 2  → server/db.js
+            Connect to SQLite, create all 5 tables
+
+  Step 3  → server/seed.js
+            Insert all seed data (idempotent)
+            Run: node seed.js — verify in SQLite browser
+
+  Step 4  → server/routes/auth.js
+            POST /signup + POST /login
+            Test with curl or Thunder Client before proceeding
+
+  Step 5  → server/routes/doctors.js + areas.js
+            GET /doctors (with filters) + GET /areas
+            Test all query params
+
+  Step 6  → server/routes/appointments.js + history.js
+            All appointment + history endpoints
+            Test auth middleware is working
+
+  Step 7  → server/server.js
+            Wire all routes, CORS headers, OPTIONS preflight
+            Full API smoke test
+
+  Step 8  → client tailwind.config.js + index.html
+            Configure darkMode: 'class', load Inter font
+
+  Step 9  → client/src/store.js + api.js
+            Store state, actions, token persistence
+
+  Step 10 → client/src/router.js
+            All routes + navigation guards
+
+  Step 11 → NavBar.vue + ThemeToggle.vue
+
+  Step 12 → LoginView.vue + SignupView.vue
+            Test full login → token → redirect flow
+
+  Step 13 → DashboardView.vue
+            Greeting, stat cards, search bar, area strip
+
+  Step 14 → DoctorCard.vue → DiscoveryView.vue
+            Filters, grid, compare button
+
+  Step 15 → CompareView.vue
+            Side-by-side table, cheapest highlight
+
+  Step 16 → AppointmentView.vue (/book)
+            Date picker, time slots, confirm flow
+
+  Step 17 → AppointmentCard.vue → AppointmentsView.vue
+            Tabs, cancel flow
+
+  Step 18 → HistoryView.vue
+            Timeline UI, add record form
+
+  Step 19 → AreaBadge.vue → ShortageView.vue
+            Shortage grid, nearest doctor suggestions
+
+  Step 20 → README.md
+            Setup steps, seed credentials, run commands
+
+----------------------------------------------------------------
+SECTION 14 — DEFINITION OF DONE
+----------------------------------------------------------------
+
+The app is complete when a judge can do ALL of the following
+without errors or dead ends:
+
+  ✅ Sign up as a new patient + log in
+  ✅ Log in with demo account (pre-filled button)
+  ✅ View dashboard with greeting, stats, upcoming appointment
+  ✅ Search for a doctor by name/specialty
+  ✅ Filter doctors by area, specialty, max price
+  ✅ Add 2–3 doctors to compare, see cheapest highlighted
+  ✅ Book an appointment (date + slot + confirm)
+  ✅ Cancel an appointment
+  ✅ View medical history as a timeline
+  ✅ Add a new medical record
+  ✅ View shortage map showing red/amber/green areas
+  ✅ Toggle dark mode — all views look correct in both modes
+  ✅ Refresh the page — session and dark mode preference persist
+
+----------------------------------------------------------------
+SECTION 15 — README TEMPLATE
+----------------------------------------------------------------
+
+README.md must include exactly:
+
+  ## MedLink — Setup
+
+  ### Prerequisites
+  Node.js 18+
+
+  ### Install & run
+
+  # Backend
+  cd server
+  npm install
+  node seed.js      # run once to populate database
+  node server.js    # runs on http://localhost:3001
+
+  # Frontend
+  cd client
+  npm install
+  npm run dev       # runs on http://localhost:5173
+
+  ### Demo credentials
+  Patient:  patient@demo.com  /  demo1234
+  Admin:    admin@demo.com    /  admin1234
+
+  ### Reset database
+  Delete server/database.sqlite, then run node seed.js again.
+
+================================================================
+END OF PROMPT
+================================================================

@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 const routes = [
   { path: '/', redirect: '/login' },
   { path: '/login', component: () => import('../pages/Login.vue') },
+  { path: '/settings', component: () => import('../pages/Settings.vue') },
 
   // Patient Portal
   { path: '/patient/dashboard', component: () => import('../pages/PatientDashboard.vue') },
