@@ -30,7 +30,7 @@ SECTION 2 — TECHNOLOGY CONSTRAINTS (NON-NEGOTIABLE)
 
 ❌ STRICTLY BANNED — DO NOT USE, IMPORT, OR MENTION:
 
-  Frontend   React, Next.js, Angular, Svelte, SvelteKit,
+  Frontend   React, Angular, Svelte, SvelteKit,
              SolidJS, jQuery, Alpine.js, Preact
 
   Backend    Express.js, Fastify, Koa, Hapi, NestJS,
