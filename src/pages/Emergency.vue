@@ -14,12 +14,26 @@
       {{ sent ? '✓ Alert sent to nearby doctors' : 'Tap to send SOS' }}
     </p>
 
-    <button v-if="sent" @click="sent = false" class="mt-4 text-xs text-text-mid underline hover:text-brand-dark">Reset</button>
+    <button v-if="sent" @click="resetSOS" class="mt-4 text-xs text-text-mid underline hover:text-brand-dark">Reset</button>
   </div>
 </template>
 <script setup>
 import { ref } from 'vue'
 import { ExclamationTriangleIcon, CheckIcon } from '@heroicons/vue/24/solid'
 const sent = ref(false)
-const sendSOS = () => { sent.value = true }
+
+const sendSOS = () => { 
+  sent.value = true
+  localStorage.setItem('sos_alert', JSON.stringify({
+    id: Date.now(),
+    patient: 'Current Patient',
+    time: 'Just now',
+    location: 'Current Location'
+  }))
+}
+
+const resetSOS = () => {
+  sent.value = false
+  localStorage.removeItem('sos_alert')
+}
 </script>

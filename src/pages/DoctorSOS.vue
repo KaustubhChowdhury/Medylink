@@ -27,7 +27,7 @@
     <div v-if="available">
       <p class="text-xs font-semibold text-text-mid uppercase tracking-wider mb-3">Incoming Alerts</p>
       <div class="space-y-3">
-        <Card v-for="alert in alerts" :key="alert.id" class="!p-4 !border-danger/20">
+        <Card v-for="(alert, index) in alerts" :key="alert.id || index" class="!p-4 !border-danger/20 anim-fade-up">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-4">
               <div class="w-3 h-3 rounded-full bg-danger animate-pulse"></div>
@@ -36,7 +36,7 @@
                 <p class="text-xs text-text-mid">{{ alert.time }} · {{ alert.location }}</p>
               </div>
             </div>
-            <Button variant="danger" class="!text-xs !px-4 !py-2">Respond</Button>
+            <Button variant="danger" class="!text-xs !px-4 !py-2" @click="respond(alert)">Respond</Button>
           </div>
         </Card>
         <p v-if="!alerts.length" class="text-center text-text-mid text-sm py-10">No active SOS alerts</p>
@@ -46,10 +46,36 @@
   </div>
 </template>
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import Card from '../components/Card.vue'
 import Button from '../components/Button.vue'
 import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
+
 const available = ref(false)
-const alerts = ref([{ id: 1, patient: 'Elena Vance', time: '2 mins ago', location: 'Ward B, Floor 3' }])
+const alerts = ref([])
+let intervalId = null
+
+const checkAlerts = () => {
+  const sos = localStorage.getItem('sos_alert')
+  if (sos) {
+    alerts.value = [JSON.parse(sos)]
+  } else {
+    alerts.value = []
+  }
+}
+
+onMounted(() => {
+  checkAlerts()
+  intervalId = setInterval(checkAlerts, 1000)
+})
+
+onUnmounted(() => {
+  if (intervalId) clearInterval(intervalId)
+})
+
+const respond = (alert) => {
+  localStorage.removeItem('sos_alert')
+  alerts.value = []
+  window.alert(`You are now responding to ${alert.patient}'s emergency.`)
+}
 </script>
