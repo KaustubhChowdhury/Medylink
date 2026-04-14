@@ -86,4 +86,16 @@ db.exec(`
   );
 `);
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS patient_reports (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER REFERENCES users(id),
+    uploaded_by INTEGER REFERENCES users(id),
+    name       TEXT    NOT NULL,
+    type       TEXT    NOT NULL,
+    date       TEXT    NOT NULL,
+    data       TEXT
+  );
+`);
+
 module.exports = db;

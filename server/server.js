@@ -25,6 +25,12 @@ const {
   addRecordByDoctor 
 } = require('./routes/history');
 const { getAdminStats } = require('./routes/admin');
+const {
+  getPatientReports,
+  uploadPatientReport,
+  getPatientReportsForDoctor,
+  uploadReportByDoctor
+} = require('./routes/reports');
 
 const PORT = 3001;
 const ALLOWED_ORIGIN = 'http://localhost:5173';
@@ -99,6 +105,30 @@ const server = http.createServer(async (req, res) => {
     if (method === 'POST' && pathname === '/doctor/add-patient-record') {
       const body = await parseBody(req);
       const result = addRecordByDoctor(body, user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    // ── REPORT ROUTES ──────────────────────────────────────────
+    if (method === 'GET' && pathname === '/patient-reports') {
+      const result = getPatientReports(user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    if (method === 'POST' && pathname === '/patient-reports') {
+      const body = await parseBody(req);
+      const result = uploadPatientReport(body, user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    if (method === 'GET' && pathname.startsWith('/doctor/patient-reports/')) {
+      const patientUserId = pathname.split('/').pop();
+      const result = getPatientReportsForDoctor(patientUserId, user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    if (method === 'POST' && pathname === '/doctor/upload-patient-report') {
+      const body = await parseBody(req);
+      const result = uploadReportByDoctor(body, user);
       return sendJSON(res, result.status, result.data);
     }
 

@@ -107,6 +107,48 @@
             <p v-else class="text-xs text-text-mid italic py-4 text-center">No prior clinical history found.</p>
           </Card>
 
+          <!-- Patient Reports -->
+          <Card class="!p-5">
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-[10px] font-bold text-text-mid uppercase tracking-[0.15em]">Patient Reports</p>
+              <span v-if="patientReports.length" class="text-[9px] font-bold text-brand-green bg-brand-green/10 px-2 py-0.5 rounded">{{ patientReports.length }} files</span>
+            </div>
+            <div v-if="reportsLoading" class="text-center py-4">
+              <p class="text-xs text-text-mid animate-pulse">Loading reports...</p>
+            </div>
+            <div class="space-y-2" v-else-if="patientReports.length">
+              <div v-for="rpt in patientReports" :key="rpt.id" class="flex items-center gap-3 p-3 bg-cream/50 rounded-xl border border-brand-pale/20 cursor-pointer hover:bg-cream transition-colors" @click="viewReport(rpt)">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-[10px] font-bold shadow-sm shrink-0"
+                  :class="rpt.type === 'PDF' ? 'bg-gradient-to-br from-danger to-red-400 text-white' : 'bg-gradient-to-br from-brand-green to-brand-mid text-white'">
+                  {{ rpt.type }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-xs font-bold text-brand-dark truncate">{{ rpt.name }}</p>
+                  <p class="text-[9px] text-text-mid">{{ rpt.date }} · by {{ rpt.uploader_name || 'Patient' }}</p>
+                </div>
+              </div>
+            </div>
+            <p v-else class="text-xs text-text-mid italic py-4 text-center">No reports on file.</p>
+          </Card>
+
+          <!-- Upload Report -->
+          <Card class="!p-5">
+            <p class="text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-3">Upload Report for Patient</p>
+            <div class="space-y-3">
+              <input v-model="newReportName" type="text" placeholder="Report name (e.g. Blood Test Results)"
+                class="w-full bg-cream border border-brand-pale/30 rounded-xl px-3 py-2.5 text-xs focus:outline-none focus:border-brand-mid transition-all" />
+              <label class="flex items-center justify-center gap-2 cursor-pointer py-4 border-2 border-dashed border-brand-pale/40 rounded-xl hover:border-brand-mid transition-colors bg-cream/30">
+                <ArrowUpTrayIcon class="w-4 h-4 text-brand-mid" />
+                <span class="text-xs text-text-mid font-semibold">{{ uploadFileName || 'Choose file (Image/PDF)' }}</span>
+                <input type="file" class="hidden" @change="handleDoctorUpload" accept="image/*,.pdf" />
+              </label>
+              <Button variant="doctor" block :disabled="reportUploading || !uploadFileData" @click="submitReport">
+                {{ reportUploading ? 'Uploading...' : 'Submit Report' }}
+              </Button>
+              <p v-if="reportSuccess" class="text-[9px] text-brand-green font-bold text-center animate-bounce">{{ reportSuccess }}</p>
+            </div>
+          </Card>
+
           <!-- AI Summary -->
           <Card class="!p-5">
             <p class="text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-3">AI Consultation Summary</p>
@@ -120,6 +162,21 @@
         </div>
       </div>
     </div>
+
+    <!-- Report Viewer Modal -->
+    <div v-if="viewingReport" class="fixed inset-0 bg-brand-dark/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" @click.self="viewingReport = null">
+      <div class="bg-white rounded-3xl p-6 max-w-lg w-full max-h-[80vh] overflow-auto shadow-card-hover anim-fade-up">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-brand-dark">{{ viewingReport.name }}</h3>
+          <button @click="viewingReport = null" class="w-8 h-8 rounded-full bg-cream flex items-center justify-center text-text-mid hover:bg-cream-dark text-lg">&times;</button>
+        </div>
+        <div v-if="viewingReport.data" class="rounded-2xl overflow-hidden border border-brand-pale/30">
+          <img v-if="viewingReport.type === 'Image'" :src="viewingReport.data" class="w-full" />
+          <embed v-else-if="viewingReport.type === 'PDF'" :src="viewingReport.data" type="application/pdf" class="w-full h-[500px]" />
+        </div>
+        <div v-else class="p-8 text-center text-text-mid text-sm">No preview available for this file.</div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -127,7 +184,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import Card from '../components/Card.vue'
 import Button from '../components/Button.vue'
-import { ClockIcon, CalendarDaysIcon } from '@heroicons/vue/24/outline'
+import { ClockIcon, CalendarDaysIcon, ArrowUpTrayIcon } from '@heroicons/vue/24/outline'
 
 // ── State ──────────────────────────────────────
 const activeIndex = ref(0)
@@ -137,6 +194,15 @@ const patients = ref([])
 const patientHistory = ref([])
 const historyLoading = ref(false)
 const generating = ref(false)
+const patientReports = ref([])
+const reportsLoading = ref(false)
+const viewingReport = ref(null)
+const newReportName = ref('')
+const uploadFileName = ref('')
+const uploadFileData = ref('')
+const uploadFileType = ref('')
+const reportUploading = ref(false)
+const reportSuccess = ref('')
 
 // ── Computed ───────────────────────────────────
 const activePatient = computed(() => patients.value[activeIndex.value] || null)
@@ -166,11 +232,82 @@ const fetchPatientHistory = async (userId) => {
   }
 }
 
+const fetchPatientReports = async (userId) => {
+  if (!userId) return
+  reportsLoading.value = true
+  patientReports.value = []
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`http://localhost:3001/doctor/patient-reports/${userId}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (res.ok) {
+      patientReports.value = await res.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch patient reports:', err)
+  } finally {
+    reportsLoading.value = false
+  }
+}
+
+const viewReport = (rpt) => {
+  viewingReport.value = rpt
+}
+
+const handleDoctorUpload = (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  uploadFileName.value = file.name
+  uploadFileType.value = file.type.startsWith('image') ? 'Image' : 'PDF'
+  if (!newReportName.value) newReportName.value = file.name
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    uploadFileData.value = event.target.result
+  }
+  reader.readAsDataURL(file)
+}
+
+const submitReport = async () => {
+  if (!uploadFileData.value || !newReportName.value || !activePatient.value) return
+  reportUploading.value = true
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch('http://localhost:3001/doctor/upload-patient-report', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        patient_user_id: activePatient.value.userId,
+        name: newReportName.value,
+        type: uploadFileType.value,
+        date: new Date().toISOString().split('T')[0],
+        data: uploadFileData.value
+      })
+    })
+    if (res.ok) {
+      reportSuccess.value = 'Report uploaded successfully!'
+      newReportName.value = ''
+      uploadFileName.value = ''
+      uploadFileData.value = ''
+      fetchPatientReports(activePatient.value.userId)
+      setTimeout(() => { reportSuccess.value = '' }, 3000)
+    }
+  } catch (err) {
+    console.error('Upload failed:', err)
+  } finally {
+    reportUploading.value = false
+  }
+}
+
 const selectPatient = (i) => {
   activeIndex.value = i
   aiSummary.value = ''
   if (patients.value[i]?.userId) {
     fetchPatientHistory(patients.value[i].userId)
+    fetchPatientReports(patients.value[i].userId)
   }
 }
 
@@ -208,6 +345,7 @@ const loadAppointments = async () => {
         // Load history for initial patient
         if (patients.value[0]?.userId) {
           fetchPatientHistory(patients.value[0].userId)
+          fetchPatientReports(patients.value[0].userId)
         }
       }
     }

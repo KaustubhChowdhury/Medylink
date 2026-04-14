@@ -63,7 +63,8 @@ function listAppointments(user, query) {
 
   let sql = `
     SELECT a.*, d.name AS doctor_name, d.specialty AS doctor_specialty,
-           d.price AS doctor_price, ar.name AS area_name, u.name AS patient_name
+           d.price AS doctor_price, ar.name AS area_name, 
+           u.name AS patient_name, u.email AS patient_email
     FROM appointments a
     LEFT JOIN doctors d ON a.doctor_id = d.id
     LEFT JOIN areas ar ON d.area_id = ar.id
@@ -144,4 +145,31 @@ function getBookedSlots(query) {
   return { status: 200, data: slots.map(s => s.time) };
 }
 
-module.exports = { bookAppointment, listAppointments, cancelAppointment, getBookedSlots };
+/**
+ * PUT /appointments/:id/complete
+ * Auth: doctor only
+ */
+function completeAppointment(appointmentId, user) {
+  if (!user) {
+    return { status: 401, data: { error: 'Authentication required' } };
+  }
+
+  if (user.role !== 'doctor') {
+    return { status: 403, data: { error: 'Only doctors can complete appointments' } };
+  }
+
+  const appointment = db.prepare('SELECT * FROM appointments WHERE id = ?').get(appointmentId);
+  if (!appointment) {
+    return { status: 404, data: { error: 'Appointment not found' } };
+  }
+
+  if (appointment.status !== 'upcoming') {
+    return { status: 400, data: { error: 'Only upcoming appointments can be completed' } };
+  }
+
+  db.prepare("UPDATE appointments SET status = 'completed' WHERE id = ?").run(appointmentId);
+
+  return { status: 200, data: { success: true } };
+}
+
+module.exports = { bookAppointment, listAppointments, cancelAppointment, completeAppointment, getBookedSlots };

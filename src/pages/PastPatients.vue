@@ -135,7 +135,7 @@ const fetchPastPatients = async () => {
       const data = await res.json()
       pastPatients.value = data.map(p => ({
         id: p.id,
-        user_id: p.user_id,
+        user_id: p.id,  // u.id from query IS the user_id
         name: p.name,
         lastVisit: new Date(p.lastVisit).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
         email: p.email
