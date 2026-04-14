@@ -55,13 +55,9 @@ db.exec(`
 `);
 
 // Migration: add columns if missing
-try {
-  db.exec(`ALTER TABLE doctors ADD COLUMN approved INTEGER DEFAULT 0`);
-  db.exec(`ALTER TABLE doctors ADD COLUMN medical_id TEXT`);
-  db.exec(`ALTER TABLE doctors ADD COLUMN medical_id_file TEXT`);
-} catch (e) {
-  // Columns already exist
-}
+try { db.exec(`ALTER TABLE doctors ADD COLUMN approved INTEGER DEFAULT 0`); } catch (e) {}
+try { db.exec(`ALTER TABLE doctors ADD COLUMN medical_id TEXT`); } catch (e) {}
+try { db.exec(`ALTER TABLE doctors ADD COLUMN medical_id_file TEXT`); } catch (e) {}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS appointments (
