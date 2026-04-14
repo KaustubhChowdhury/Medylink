@@ -17,7 +17,7 @@ const {
   updateSlots
 } = require('./routes/doctors');
 const { listAreas, getAreaDoctors, toggleShortage } = require('./routes/areas');
-const { bookAppointment, listAppointments, cancelAppointment, getBookedSlots } = require('./routes/appointments');
+const { bookAppointment, listAppointments, cancelAppointment, completeAppointment, getBookedSlots } = require('./routes/appointments');
 const { 
   getHistory, 
   addRecord, 
@@ -253,6 +253,13 @@ const server = http.createServer(async (req, res) => {
     const cancelMatch = pathname.match(/^\/appointments\/(\d+)\/cancel$/);
     if (method === 'PUT' && cancelMatch) {
       const result = cancelAppointment(parseInt(cancelMatch[1], 10), user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    // PUT /appointments/:id/complete
+    const completeMatch = pathname.match(/^\/appointments\/(\d+)\/complete$/);
+    if (method === 'PUT' && completeMatch) {
+      const result = completeAppointment(parseInt(completeMatch[1], 10), user);
       return sendJSON(res, result.status, result.data);
     }
 

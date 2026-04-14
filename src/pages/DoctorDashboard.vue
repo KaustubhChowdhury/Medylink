@@ -52,15 +52,19 @@
                 </div>
               </div>
               <div class="flex items-center gap-2">
-                <span v-if="i === activeIndex" class="text-[10px] font-bold uppercase bg-brand-green/10 text-brand-green px-3 py-1.5 rounded-lg">Active</span>
-                <span v-if="i < activeIndex" class="text-[10px] font-bold uppercase bg-cream text-text-light px-3 py-1.5 rounded-lg">Done</span>
-                <button v-if="i === activeIndex" @click.stop="postpone(i)" class="text-xs text-warn font-bold hover:underline">Postpone</button>
+                <span v-if="pt.completed" class="text-[10px] font-bold uppercase bg-brand-green/10 text-brand-green px-3 py-1.5 rounded-lg">✓ Completed</span>
+                <span v-else-if="i === activeIndex" class="text-[10px] font-bold uppercase bg-brand-green/10 text-brand-green px-3 py-1.5 rounded-lg">Active</span>
+                <span v-else-if="i < activeIndex" class="text-[10px] font-bold uppercase bg-cream text-text-light px-3 py-1.5 rounded-lg">Waiting</span>
+                <button v-if="i === activeIndex && !pt.completed" @click.stop="postpone(i)" class="text-xs text-warn font-bold hover:underline">Postpone</button>
               </div>
             </div>
           </Card>
 
-          <div class="mt-4">
-            <Button variant="doctor" @click="nextPatient" :disabled="activeIndex >= patients.length - 1" class="!px-6 !py-3">
+          <div class="mt-4 flex items-center gap-3">
+            <Button variant="doctor" @click="completeVisit" class="!px-6 !py-3" :disabled="!activePatient">
+              ✓ Complete Visit
+            </Button>
+            <Button variant="doctor" @click="nextPatient" :disabled="activeIndex >= patients.length - 1" class="!px-6 !py-3 !bg-gradient-to-r !from-brand-mid !to-brand-green">
               Call Next Patient →
             </Button>
           </div>
@@ -351,6 +355,28 @@ const loadAppointments = async () => {
     }
   } catch (err) {
     console.error('Failed to load appointments:', err)
+  }
+}
+
+const completeVisit = async () => {
+  const pt = activePatient.value
+  if (!pt) return
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`http://localhost:3001/appointments/${pt.id}/complete`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (res.ok) {
+      pt.completed = true
+      // Auto-advance to next uncompleted patient
+      const nextIdx = patients.value.findIndex((p, i) => i > activeIndex.value && !p.completed)
+      if (nextIdx !== -1) {
+        selectPatient(nextIdx)
+      }
+    }
+  } catch (err) {
+    console.error('Failed to complete visit:', err)
   }
 }
 

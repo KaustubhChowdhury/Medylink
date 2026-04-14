@@ -1,14 +1,13 @@
 <template>
   <div>
     <div class="relative mb-10">
-      <div class="absolute -top-4 -left-6 w-28 h-28 bg-brand-light/15 rounded-full blur-3xl"></div>
       <h1 class="text-3xl font-serif font-bold text-brand-dark mb-1 relative">My Reports</h1>
       <p class="text-text-mid text-sm relative">Upload and view medical documents</p>
     </div>
 
     <Card class="!p-5 mb-6 anim-fade-up">
       <label class="flex items-center justify-center gap-4 cursor-pointer py-8 border-2 border-dashed border-brand-pale rounded-2xl hover:border-brand-green transition-colors bg-cream/40">
-        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-green to-brand-mid flex items-center justify-center shadow-icon icon-float">
+        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-green to-brand-mid flex items-center justify-center shadow-icon transition-transform hover:scale-105">
           <ArrowUpTrayIcon class="w-7 h-7 text-white" />
         </div>
         <div>

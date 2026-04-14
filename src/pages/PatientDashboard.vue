@@ -2,8 +2,6 @@
   <div>
     <!-- Artistic Header -->
     <div class="relative mb-10">
-      <div class="absolute -top-8 -left-8 w-40 h-40 bg-brand-pale/20 rounded-full blur-3xl"></div>
-      <div class="absolute -top-4 right-1/4 w-24 h-24 bg-warn/10 rounded-full blur-2xl"></div>
       <div class="relative flex items-end justify-between">
         <div>
           <p class="text-[10px] font-bold text-text-mid uppercase tracking-[0.2em] mb-2 anim-fade-up">Patient Portal</p>
@@ -12,7 +10,7 @@
         </div>
         <div class="anim-fade-up anim-delay-2">
           <router-link to="/patient/profile">
-            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-dark to-brand-mid text-white flex items-center justify-center shadow-icon icon-pulse cursor-pointer font-serif font-bold text-xl hover:scale-105 transition-transform">
+            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-dark to-brand-mid text-white flex items-center justify-center shadow-icon cursor-pointer font-serif font-bold text-xl hover:scale-105 transition-transform">
               {{ initials }}
             </div>
           </router-link>
@@ -24,7 +22,7 @@
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
       <Card v-for="(stat, i) in stats" :key="stat.label" class="!p-4 anim-fade-up" :class="`anim-delay-${i+1}`">
         <div class="flex items-center gap-3">
-          <div class="w-11 h-11 rounded-xl flex items-center justify-center shadow-sm icon-float" :class="stat.bg" :style="`animation-delay: ${i * 0.4}s`">
+          <div class="w-11 h-11 rounded-xl flex items-center justify-center shadow-sm" :class="stat.bg" :style="`animation-delay: ${i * 0.4}s`">
             <component :is="stat.icon" class="w-5 h-5 text-white" />
           </div>
           <div>
@@ -38,7 +36,7 @@
     <!-- Upcoming Appointments -->
     <div class="mb-8 anim-fade-up anim-delay-2">
       <div class="flex items-center justify-between mb-4">
-        <p class="text-[10px] font-bold text-text-mid uppercase tracking-[0.15em]">📅 Upcoming Appointments</p>
+        <p class="text-[10px] font-bold text-text-mid uppercase tracking-[0.15em]">📅 Your Appointments</p>
         <router-link to="/patient/book" class="text-xs font-bold text-brand-green hover:underline">+ Book New</router-link>
       </div>
 
@@ -52,7 +50,7 @@
             </div>
             <div class="flex-1 p-4 flex items-center justify-between">
               <div class="flex items-center gap-4">
-                <div class="w-12 h-12 rounded-2xl bg-cream flex items-center justify-center shadow-sm font-bold text-brand-dark font-serif text-sm" :class="i === 0 ? 'icon-pulse' : ''">
+                <div class="w-12 h-12 rounded-2xl bg-cream flex items-center justify-center shadow-sm font-bold text-brand-dark font-serif text-sm">
                   {{ apt.doctorInitial }}
                 </div>
                 <div>
@@ -61,13 +59,18 @@
                 </div>
               </div>
               <div class="text-right">
-                <p class="text-[10px] text-text-light uppercase tracking-wider font-semibold mb-1">Token</p>
-                <p class="text-xl font-bold" :class="apt.tokenColor">#{{ apt.token }}</p>
+                <div v-if="apt.status === 'upcoming'">
+                  <p class="text-[10px] text-text-light uppercase tracking-wider font-semibold mb-1">Token</p>
+                  <p class="text-xl font-bold" :class="apt.tokenColor">#{{ apt.token }}</p>
+                </div>
+                <div v-else>
+                  <p class="inline-block px-3 py-1 bg-brand-green/10 text-brand-green rounded-lg text-xs font-bold uppercase tracking-wide">✓ Completed</p>
+                </div>
               </div>
             </div>
           </div>
         </Card>
-        <p v-if="!appointments.length" class="text-center text-text-mid text-sm py-8">No upcoming appointments. <router-link to="/patient/book" class="text-brand-green font-semibold hover:underline">Book one now →</router-link></p>
+        <p v-if="!appointments.length" class="text-center text-text-mid text-sm py-8">No appointments found. <router-link to="/patient/book" class="text-brand-green font-semibold hover:underline">Book one now →</router-link></p>
       </div>
     </div>
 
@@ -77,7 +80,7 @@
       <div class="grid grid-cols-3 md:grid-cols-6 gap-4">
         <router-link v-for="(link, i) in quickLinks" :key="link.to" :to="link.to" class="block anim-fade-up" :class="`anim-delay-${i+1}`">
           <div class="bg-white rounded-2xl p-4 shadow-card border border-brand-pale/20 text-center hover:shadow-card-hover hover:-translate-y-2 transition-all cursor-pointer group">
-            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-icon icon-float group-hover:scale-110 transition-transform" :class="link.gradient" :style="`animation-delay: ${i * 0.3}s`">
+            <div class="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-icon group-hover:scale-110 transition-transform" :class="link.gradient" :style="`animation-delay: ${i * 0.3}s`">
               <component :is="link.icon" class="w-7 h-7 text-white" />
             </div>
             <p class="text-xs font-bold text-brand-dark leading-tight">{{ link.label }}</p>
@@ -92,7 +95,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
         <Card v-for="(tip, i) in healthTips" :key="i" class="!p-5 anim-fade-up" :class="`anim-delay-${i+1}`">
           <div class="flex items-start gap-4">
-            <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-icon shrink-0 icon-float" :style="`animation-delay: ${i * 0.6}s`" :class="tip.gradient">
+            <div class="w-12 h-12 rounded-2xl flex items-center justify-center shadow-icon shrink-0" :style="`animation-delay: ${i * 0.6}s`" :class="tip.gradient">
               <component :is="tip.icon" class="w-6 h-6 text-white" />
             </div>
             <div>
@@ -140,8 +143,8 @@ onMounted(async () => {
         'bg-gradient-to-b from-brand-mid to-brand-green',
       ]
       const tokenColors = ['text-brand-green', 'text-brand-mid', 'text-brand-dark']
-      const upcoming = (Array.isArray(data) ? data : []).filter(a => a.status === 'upcoming')
-      appointments.value = upcoming.map((apt, i) => {
+      const filtered = (Array.isArray(data) ? data : []).filter(a => a.status === 'upcoming' || a.status === 'completed')
+      appointments.value = filtered.map((apt, i) => {
         const d = new Date(apt.date)
         const doctorName = apt.doctor_name ? 'Dr. ' + apt.doctor_name : 'Doctor'
         const nameParts = doctorName.split(' ')
@@ -157,6 +160,7 @@ onMounted(async () => {
           token: i + 1,
           accent: accentColors[i % accentColors.length],
           tokenColor: tokenColors[i % tokenColors.length],
+          status: apt.status
         }
       })
     }
