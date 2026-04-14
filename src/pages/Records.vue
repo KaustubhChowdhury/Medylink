@@ -53,19 +53,46 @@
   </div>
 </template>
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import Card from '../components/Card.vue'
 import Button from '../components/Button.vue'
 import { ArrowUpTrayIcon } from '@heroicons/vue/24/outline'
+
 const viewing = ref(null)
 const reports = ref([
   { name: 'Complete Blood Count (CBC)', type: 'PDF', date: 'Oct 14, 2025', url: '' },
   { name: 'MRI Spinal Cluster', type: 'Image', date: 'Sep 28, 2025', url: 'https://images.unsplash.com/photo-1516549655169-df83a0774514?w=800&q=80' },
   { name: 'Neurological Assessment Notes', type: 'PDF', date: 'Aug 10, 2025', url: '' },
 ])
+
+onMounted(() => {
+  const saved = localStorage.getItem('medlink_reports')
+  if (saved) {
+    reports.value = JSON.parse(saved)
+  }
+})
+
+watch(reports, (newVal) => {
+  localStorage.setItem('medlink_reports', JSON.stringify(newVal))
+}, { deep: true })
+
 const handleUpload = (e) => {
   const file = e.target.files[0]; if (!file) return
-  reports.value.unshift({ name: file.name, type: file.type.startsWith('image') ? 'Image' : 'PDF', date: 'Just now', url: URL.createObjectURL(file) })
+  // Instead of URL.createObjectURL which only works for the current session,
+  // we could use a real backend. For now, since it's saving to localStorage, 
+  // Object URLs will break across reloads. We'll simulate a file upload with a pseudo URL or base64.
+  // Actually, for local demonstration, let's keep the real URL or just a placeholder if it's large.
+  // Converting to base64:
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    reports.value.unshift({ 
+      name: file.name, 
+      type: file.type.startsWith('image') ? 'Image' : 'PDF', 
+      date: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), 
+      url: event.target.result 
+    })
+  }
+  reader.readAsDataURL(file)
 }
 const viewFile = (r) => { viewing.value = r }
 </script>

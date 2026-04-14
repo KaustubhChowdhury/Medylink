@@ -34,6 +34,7 @@
         </button>
         <div v-if="showDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-card border border-brand-pale/20 py-2 z-50 shadow-lg">
           <router-link v-if="portal !== 'doctor'" @click="showDropdown = false" to="/patient/profile" class="block py-2 px-4 text-sm text-text-dark hover:bg-brand-pale/20 hover:text-brand-dark transition-colors text-left">Profile</router-link>
+          <router-link v-if="portal === 'doctor'" @click="showDropdown = false" to="/doctor/profile" class="block py-2 px-4 text-sm text-text-dark hover:bg-brand-pale/20 hover:text-brand-dark transition-colors text-left">Profile</router-link>
           <router-link @click="showDropdown = false" to="/settings" class="block py-2 px-4 text-sm text-text-dark hover:bg-brand-pale/20 hover:text-brand-dark transition-colors text-left">Settings</router-link>
           <div class="border-t border-brand-pale/30 my-1"></div>
           <button @click="logout" class="w-full text-left py-2 px-4 text-sm text-danger font-semibold hover:bg-danger/10 transition-colors">Logout</button>

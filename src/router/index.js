@@ -19,6 +19,7 @@ const routes = [
   { path: '/doctor/slots', component: () => import('../pages/SlotManager.vue') },
   { path: '/doctor/sos', component: () => import('../pages/DoctorSOS.vue') },
   { path: '/doctor/patients', component: () => import('../pages/PastPatients.vue') },
+  { path: '/doctor/profile', component: () => import('../pages/DoctorProfile.vue') },
 
   // Admin Portal
   { path: '/admin/dashboard', component: () => import('../pages/AdminDashboard.vue') },

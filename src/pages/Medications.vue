@@ -40,7 +40,7 @@
               <p class="text-xs text-text-mid">{{ med.period }} · {{ med.time || 'No time set' }}</p>
             </div>
           </div>
-          <button @click="reminders.splice(i, 1)" class="text-danger hover:underline text-xs font-semibold">Remove</button>
+          <button @click="removeReminder(i)" class="text-danger hover:underline text-xs font-semibold">Remove</button>
         </div>
       </Card>
       <p v-if="!reminders.length" class="text-center text-text-mid text-sm py-10">No reminders yet</p>
@@ -48,18 +48,35 @@
   </div>
 </template>
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import Card from '../components/Card.vue'
 import Button from '../components/Button.vue'
 import { BellIcon } from '@heroicons/vue/24/outline'
+
 const form = ref({ name: '', period: '', time: '' })
 const reminders = ref([
   { name: 'Metformin 500mg', period: 'Morning', time: '08:00' },
   { name: 'Atorvastatin 10mg', period: 'Evening', time: '21:00' },
 ])
+
+onMounted(() => {
+  const saved = localStorage.getItem('medlink_medications')
+  if (saved) {
+    reminders.value = JSON.parse(saved)
+  }
+})
+
+watch(reminders, (newVal) => {
+  localStorage.setItem('medlink_medications', JSON.stringify(newVal))
+}, { deep: true })
+
 const addReminder = () => {
   if (!form.value.name || !form.value.period) return
   reminders.value.push({ ...form.value })
   form.value = { name: '', period: '', time: '' }
+}
+
+const removeReminder = (index) => {
+  reminders.value.splice(index, 1)
 }
 </script>

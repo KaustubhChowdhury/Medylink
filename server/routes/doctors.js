@@ -91,4 +91,79 @@ function compareDoctors(query) {
   return { status: 200, data: doctors };
 }
 
-module.exports = { listDoctors, getDoctor, compareDoctors };
+/**
+ * GET /doctor/me
+ */
+function getDoctorProfile(user) {
+  if (!user || user.role !== 'doctor') {
+    return { status: 403, data: { error: 'Unauthorized' } };
+  }
+  let doctor = db.prepare(`
+    SELECT d.*, a.name AS area_name
+    FROM doctors d
+    LEFT JOIN areas a ON d.area_id = a.id
+    WHERE d.user_id = ?
+  `).get(user.id);
+  
+  if (!doctor) {
+    // Self-healing: create the doctor entry
+    db.prepare(`
+      INSERT INTO doctors (user_id, name, specialty, price, area_id, available)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(user.id, user.name || 'Doctor', 'General Physician', 500, 1, 0);
+    doctor = db.prepare(`
+      SELECT d.*, a.name AS area_name
+      FROM doctors d
+      LEFT JOIN areas a ON d.area_id = a.id
+      WHERE d.user_id = ?
+    `).get(user.id);
+  }
+  return { status: 200, data: doctor };
+}
+
+/**
+ * PUT /doctor/me
+ */
+function updateDoctorProfile(body, user) {
+  if (!user || user.role !== 'doctor') {
+    return { status: 403, data: { error: 'Unauthorized' } };
+  }
+  let doctor = db.prepare('SELECT id FROM doctors WHERE user_id = ?').get(user.id);
+  if (!doctor) {
+     db.prepare(`
+      INSERT INTO doctors (user_id, name, specialty, price, area_id, available)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(user.id, user.name || 'Doctor', 'General Physician', 500, 1, 0);
+  }
+
+  const { available, price, specialty, area_id } = body;
+  
+  let updates = [];
+  let params = [];
+  if (available !== undefined) {
+    updates.push('available = ?');
+    params.push(available ? 1 : 0);
+  }
+  if (price !== undefined) {
+    updates.push('price = ?');
+    params.push(parseInt(price, 10));
+  }
+  if (specialty !== undefined) {
+    updates.push('specialty = ?');
+    params.push(specialty);
+  }
+  if (area_id !== undefined) {
+    updates.push('area_id = ?');
+    params.push(parseInt(area_id, 10));
+  }
+
+  if (updates.length > 0) {
+    const sql = `UPDATE doctors SET ${updates.join(', ')} WHERE user_id = ?`;
+    params.push(user.id);
+    db.prepare(sql).run(...params);
+  }
+
+  return getDoctorProfile(user);
+}
+
+module.exports = { listDoctors, getDoctor, compareDoctors, getDoctorProfile, updateDoctorProfile };

@@ -32,6 +32,15 @@ function signup(body) {
   ).run(name, email, hash, userRole);
 
   const user = { id: result.lastInsertRowid, name, email, role: userRole };
+  
+  if (userRole === 'doctor') {
+    // Insert default profile for Doctor
+    db.prepare(`
+      INSERT INTO doctors (user_id, name, specialty, price, area_id, available)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(user.id, name, 'General Physician', 500, 1, 0); // Default to not available
+  }
+
   const token = jwt.sign({ id: user.id, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '7d' });
 
   return { status: 201, data: { token, user } };

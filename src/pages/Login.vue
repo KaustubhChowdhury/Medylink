@@ -173,6 +173,7 @@ const handleSubmit = async () => {
 
     // Success
     localStorage.setItem('token', data.token)
+    localStorage.setItem('user', JSON.stringify(data.user))
     // Override the role logic because it's determined by the fetched user
     login(data.user.role)
   } catch (err) {
@@ -182,15 +183,30 @@ const handleSubmit = async () => {
   }
 }
 
-const quickLogin = (email, pass, r) => {
-  // If doctor mock account doesn't exist, bypass API just for UI consistency:
-  if (r === 'doctor') {
-    login('doctor');
-    return;
-  }
+const quickLogin = async (email, pass, r) => {
   userId.value = email;
   password.value = pass;
+  
+  // Try to login directly
   isLoginMode.value = true;
-  handleSubmit();
+  
+  try {
+    const res = await fetch(`${API_BASE}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pass })
+    });
+    
+    if (!res.ok) throw new Error('Not found');
+    
+    // Valid account, execute standard login via handleSubmit
+    handleSubmit();
+  } catch (err) {
+    // If not found, create the default demo account right now
+    isLoginMode.value = false;
+    name.value = r === 'doctor' ? 'Dr. Demo' : (r === 'admin' ? 'Admin Demo' : 'Patient Demo');
+    role.value = r;
+    handleSubmit();
+  }
 }
 </script>

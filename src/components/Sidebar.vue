@@ -35,7 +35,7 @@ import { useRouter } from 'vue-router'
 import {
   HomeIcon, CalendarIcon, ClockIcon, FolderIcon, BellIcon,
   ExclamationTriangleIcon, QueueListIcon, Cog6ToothIcon,
-  UserGroupIcon, ShieldCheckIcon, ArrowLeftOnRectangleIcon,
+  UserGroupIcon, ShieldCheckIcon, ArrowLeftOnRectangleIcon, UserIcon,
 } from '@heroicons/vue/24/outline'
 
 const props = defineProps({ portal: { type: String, default: null } })
@@ -48,13 +48,14 @@ const patientNav = [
   { name: 'My Reports', to: '/patient/records', icon: FolderIcon },
   { name: 'Medications', to: '/patient/medications', icon: BellIcon },
   { name: 'SOS', to: '/patient/sos', icon: ExclamationTriangleIcon },
-  { name: 'My Profile', to: '/patient/profile', icon: UserGroupIcon },
+  { name: 'My Profile', to: '/patient/profile', icon: UserIcon },
 ]
 const doctorNav = [
   { name: 'Queue', to: '/doctor/dashboard', icon: QueueListIcon },
   { name: 'Slot Manager', to: '/doctor/slots', icon: Cog6ToothIcon },
   { name: 'Past Patients', to: '/doctor/patients', icon: UserGroupIcon },
   { name: 'SOS Alerts', to: '/doctor/sos', icon: ExclamationTriangleIcon },
+  { name: 'Profile', to: '/doctor/profile', icon: UserIcon },
 ]
 const adminNav = [
   { name: 'Doctor Approvals', to: '/admin/dashboard', icon: ShieldCheckIcon },

@@ -9,10 +9,10 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <!-- Profile Card -->
       <Card class="!p-6 md:col-span-1 anim-fade-up text-center">
-        <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-brand-dark to-brand-mid flex items-center justify-center mx-auto mb-4 shadow-icon icon-pulse text-white font-serif font-bold text-3xl">
-          ER
+        <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-brand-dark to-brand-mid flex items-center justify-center mx-auto mb-4 shadow-icon icon-pulse text-white font-serif font-bold text-3xl uppercase">
+          {{ patientName !== 'Loading...' ? patientName.substring(0, 2) : 'ER' }}
         </div>
-        <h2 class="text-xl font-bold text-brand-dark mb-0.5">Elena Rossi</h2>
+        <h2 class="text-xl font-bold text-brand-dark mb-0.5">{{ patientName }}</h2>
         <p class="text-xs text-text-mid mb-4">Patient ID: MED-982-A</p>
         <div class="inline-flex items-center gap-1.5 bg-brand-pale/30 text-brand-dark text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg">
           <span class="w-2 h-2 rounded-full bg-brand-green"></span> Active Member
@@ -108,13 +108,29 @@ import { HeartIcon, ShieldCheckIcon, ClipboardDocumentListIcon } from '@heroicon
 const saved = ref(false)
 
 const personalFields = ref([
-  { label: 'Full Name', value: 'Elena Rossi' },
+  { label: 'Full Name', value: 'Loading...' },
   { label: 'Date of Birth', value: '1991-03-15', type: 'date' },
-  { label: 'Email', value: 'elena.rossi@email.com', type: 'email' },
+  { label: 'Email', value: 'Loading...', type: 'email' },
   { label: 'Phone', value: '+91 98765 43210', type: 'tel' },
   { label: 'Address', value: '42 Green Valley, Mumbai' },
   { label: 'Gender', value: 'Female' },
 ])
+
+import { onMounted } from 'vue'
+
+const patientName = ref('Loading...')
+
+onMounted(() => {
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      const user = JSON.parse(userStr)
+      patientName.value = user.name
+      personalFields.value[0].value = user.name
+      personalFields.value[2].value = user.email
+    } catch(e) {}
+  }
+})
 
 const emergencyContact = ref({
   name: 'Marco Rossi',

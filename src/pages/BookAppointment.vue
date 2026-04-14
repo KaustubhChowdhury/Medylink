@@ -97,7 +97,7 @@
   </div>
 </template>
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import Card from '../components/Card.vue'
 import Button from '../components/Button.vue'
 import { CheckCircleIcon } from '@heroicons/vue/24/outline'
@@ -107,12 +107,24 @@ const selectedDoctor = ref(null)
 const selectedDate = ref(null)
 const slotIndex = ref(6)
 
-const doctors = [
-  { id: 1, name: 'Dr. Helena Vance', specialization: 'Cardiology', available: true },
-  { id: 2, name: 'Dr. Raj Singh', specialization: 'Neurology', available: true },
-  { id: 3, name: 'Dr. Sarah Connor', specialization: 'General Medicine', available: true },
-  { id: 4, name: 'Dr. James Wilson', specialization: 'Orthopedics', available: false },
-]
+const doctors = ref([])
+
+onMounted(async () => {
+  try {
+    const res = await fetch('http://localhost:3001/doctors?available=1')
+    if (res.ok) {
+      const { data } = await res.json()
+      doctors.value = data.map(d => ({
+        id: d.id,
+        name: 'Dr. ' + d.name,
+        specialization: d.specialty || 'General',
+        available: true
+      }))
+    }
+  } catch (err) {
+    console.error('Failed to load doctors:', err)
+  }
+})
 
 const dates = Array.from({ length: 7 }, (_, i) => {
   const d = new Date(); d.setDate(d.getDate() + i)

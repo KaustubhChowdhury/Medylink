@@ -3,7 +3,7 @@ const { URL } = require('url');
 
 // ── Route modules ─────────────────────────────────────────────
 const { signup, login, verifyToken } = require('./routes/auth');
-const { listDoctors, getDoctor, compareDoctors } = require('./routes/doctors');
+const { listDoctors, getDoctor, compareDoctors, getDoctorProfile, updateDoctorProfile } = require('./routes/doctors');
 const { listAreas, getAreaDoctors, toggleShortage } = require('./routes/areas');
 const { bookAppointment, listAppointments, cancelAppointment, getBookedSlots } = require('./routes/appointments');
 const { getHistory, addRecord } = require('./routes/history');
@@ -85,6 +85,17 @@ const server = http.createServer(async (req, res) => {
     }
 
     // ── DOCTOR ROUTES ────────────────────────────────────────
+
+    if (method === 'GET' && pathname === '/doctor/me') {
+      const result = getDoctorProfile(user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    if (method === 'PUT' && pathname === '/doctor/me') {
+      const body = await parseBody(req);
+      const result = updateDoctorProfile(body, user);
+      return sendJSON(res, result.status, result.data);
+    }
 
     if (method === 'GET' && pathname === '/doctors') {
       const result = listDoctors(query);

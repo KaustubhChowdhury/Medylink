@@ -15,7 +15,7 @@
             <p class="text-xs text-text-mid mt-0.5">Receive SOS alerts from patients</p>
           </div>
         </div>
-        <button @click="available = !available"
+        <button @click="toggleAvailability"
           class="w-14 h-8 rounded-full transition-colors relative"
           :class="available ? 'bg-brand-green' : 'bg-cream-dark'">
           <div class="w-6 h-6 rounded-full bg-white shadow-sm absolute top-1 transition-all"
@@ -46,7 +46,7 @@
   </div>
 </template>
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import Card from '../components/Card.vue'
 import Button from '../components/Button.vue'
 import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
@@ -54,6 +54,41 @@ import { ExclamationTriangleIcon } from '@heroicons/vue/24/outline'
 const available = ref(false)
 const alerts = ref([])
 let intervalId = null
+const auth = ref(null)
+
+const fetchAvailability = async () => {
+  try {
+    const res = await fetch('http://localhost:3001/doctor/me', {
+      headers: {
+        'Authorization': `Bearer ${auth.value?.token}`
+      }
+    })
+    if (res.ok) {
+      const { data } = await res.json()
+      available.value = data.available === 1
+    }
+  } catch (err) {
+    console.error('Failed to fetch availability', err)
+  }
+}
+
+const toggleAvailability = async () => {
+  const newStatus = !available.value
+  available.value = newStatus
+  try {
+    await fetch('http://localhost:3001/doctor/me', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${auth.value?.token}`
+      },
+      body: JSON.stringify({ available: newStatus })
+    })
+  } catch (err) {
+    console.error('Failed to update availability', err)
+    available.value = !newStatus // revert on fail
+  }
+}
 
 const checkAlerts = () => {
   const sos = localStorage.getItem('sos_alert')
@@ -65,6 +100,12 @@ const checkAlerts = () => {
 }
 
 onMounted(() => {
+  const token = localStorage.getItem('token')
+  if (token) {
+    auth.value = { token }
+    fetchAvailability()
+  }
+  
   checkAlerts()
   intervalId = setInterval(checkAlerts, 1000)
 })
