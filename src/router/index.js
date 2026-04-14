@@ -22,7 +22,9 @@ const routes = [
   { path: '/doctor/profile', component: () => import('../pages/DoctorProfile.vue') },
 
   // Admin Portal
+  { path: '/admin/login', component: () => import('../pages/AdminLogin.vue') },
   { path: '/admin/dashboard', component: () => import('../pages/AdminDashboard.vue') },
+  { path: '/admin/doctors', component: () => import('../pages/AdminDoctors.vue') },
 ]
 
 const router = createRouter({

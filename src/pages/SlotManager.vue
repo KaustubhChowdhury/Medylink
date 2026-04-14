@@ -58,34 +58,61 @@ const slots = ref([])
 const saving = ref(false)
 const successMsg = ref('')
 
-onMounted(() => {
-  const saved = localStorage.getItem('doctor_slots')
-  if (saved) {
-    slots.value = JSON.parse(saved)
+const fetchSlots = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch('http://localhost:3001/doctor/slots', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (res.ok) {
+      slots.value = await res.json()
+    }
+  } catch (err) {
+    console.error('Failed to fetch slots:', err)
   }
+}
+
+onMounted(() => {
+  fetchSlots()
 })
 
 const generateSlots = () => {
-  slots.value = []
+  const newSlots = []
   const [sh, sm] = startTime.value.split(':').map(Number)
   const [eh, em] = endTime.value.split(':').map(Number)
   let mins = sh * 60 + sm; const endMins = eh * 60 + em
   while (mins < endMins) {
     const h = Math.floor(mins / 60).toString().padStart(2, '0')
     const m = (mins % 60).toString().padStart(2, '0')
-    slots.value.push({ time: `${h}:${m}`, enabled: true })
+    const time = `${h}:${m}`
+    // Preserve enabled status if slot existed
+    const existing = slots.value.find(s => s.time === time)
+    newSlots.push({ time, enabled: existing ? !!existing.enabled : true })
     mins += 10
   }
+  slots.value = newSlots
 }
 
-const saveSlots = () => {
+const saveSlots = async () => {
   saving.value = true
-  // Mock API call delay
-  setTimeout(() => {
-    localStorage.setItem('doctor_slots', JSON.stringify(slots.value))
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch('http://localhost:3001/doctor/slots', {
+      method: 'POST',
+      headers: { 
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ slots: slots.value })
+    })
+    if (res.ok) {
+      successMsg.value = 'Availability slots updated successfully!'
+      setTimeout(() => { successMsg.value = '' }, 3000)
+    }
+  } catch (err) {
+    console.error('Failed to save slots:', err)
+  } finally {
     saving.value = false
-    successMsg.value = 'Availability slots updated successfully!'
-    setTimeout(() => { successMsg.value = '' }, 3000)
-  }, 600)
+  }
 }
 </script>

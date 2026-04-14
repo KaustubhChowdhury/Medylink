@@ -38,9 +38,30 @@ db.exec(`
     specialty    TEXT    NOT NULL,
     price        INTEGER NOT NULL,
     area_id      INTEGER REFERENCES areas(id),
-    available    INTEGER DEFAULT 1
+    available    INTEGER DEFAULT 1,
+    approved     INTEGER DEFAULT 0,
+    medical_id   TEXT,    -- License number
+    medical_id_file TEXT  -- Base64 or path to the ID document
   );
 `);
+
+db.exec(`
+  CREATE TABLE IF NOT EXISTS doctor_slots (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    doctor_id  INTEGER REFERENCES doctors(id),
+    time       TEXT    NOT NULL,
+    enabled    INTEGER DEFAULT 1
+  );
+`);
+
+// Migration: add columns if missing
+try {
+  db.exec(`ALTER TABLE doctors ADD COLUMN approved INTEGER DEFAULT 0`);
+  db.exec(`ALTER TABLE doctors ADD COLUMN medical_id TEXT`);
+  db.exec(`ALTER TABLE doctors ADD COLUMN medical_id_file TEXT`);
+} catch (e) {
+  // Columns already exist
+}
 
 db.exec(`
   CREATE TABLE IF NOT EXISTS appointments (

@@ -2,7 +2,15 @@
   <aside class="w-64 h-full flex flex-col bg-brand-dark shrink-0">
     <!-- Brand -->
     <div class="px-6 pt-8 pb-6">
-      <h1 class="text-2xl font-serif font-bold text-white tracking-tight">MedyLink</h1>
+      <div class="flex items-center gap-3">
+        <svg class="w-8 h-8 text-brand-pale" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter">
+          <path d="M 35,50 L 35,25 L 50,10 L 65,25 L 65,65" />
+          <path d="M 50,35 L 75,35 L 90,50 L 75,65 L 35,65" />
+          <path d="M 65,50 L 65,75 L 50,90 L 35,75 L 35,35" />
+          <path d="M 50,65 L 25,65 L 10,50 L 25,35 L 65,35" />
+        </svg>
+        <h1 class="text-2xl font-serif font-bold text-white tracking-tight">MedyLink</h1>
+      </div>
       <p class="text-[10px] text-brand-pale uppercase tracking-[0.2em] font-semibold mt-1">
         {{ portal === 'doctor' ? 'Doctor Portal' : portal === 'admin' ? 'Admin Portal' : 'Patient Portal' }}
       </p>
@@ -58,7 +66,8 @@ const doctorNav = [
   { name: 'Profile', to: '/doctor/profile', icon: UserIcon },
 ]
 const adminNav = [
-  { name: 'Doctor Approvals', to: '/admin/dashboard', icon: ShieldCheckIcon },
+  { name: 'Approvals', to: '/admin/dashboard', icon: ShieldCheckIcon },
+  { name: 'Practitioners', to: '/admin/doctors', icon: UserGroupIcon },
 ]
 
 const navItems = computed(() => {

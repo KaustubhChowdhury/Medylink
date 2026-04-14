@@ -4,6 +4,10 @@ const db = require('../db');
  * GET /doctors
  * Query params: ?area=&specialty=&maxPrice=&available=
  */
+/**
+ * GET /doctors
+ * Query params: ?area=&specialty=&maxPrice=&available=&approved=
+ */
 function listDoctors(query) {
   let sql = `
     SELECT d.*, a.name AS area_name
@@ -12,6 +16,16 @@ function listDoctors(query) {
     WHERE 1=1
   `;
   const params = [];
+
+  // Default to showing only approved doctors unless explicitly requested otherwise (or by admin)
+  if (query.approved === 'all') {
+    // Show everything
+  } else if (query.approved !== undefined) {
+    sql += ' AND d.approved = ?';
+    params.push(query.approved === '1' || query.approved === 'true' ? 1 : 0);
+  } else {
+    sql += ' AND d.approved = 1';
+  }
 
   if (query.area) {
     sql += ' AND d.area_id = ?';
@@ -108,9 +122,9 @@ function getDoctorProfile(user) {
   if (!doctor) {
     // Self-healing: create the doctor entry
     db.prepare(`
-      INSERT INTO doctors (user_id, name, specialty, price, area_id, available)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(user.id, user.name || 'Doctor', 'General Physician', 500, 1, 0);
+      INSERT INTO doctors (user_id, name, specialty, price, area_id, available, approved)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(user.id, user.name || 'Doctor', 'General Physician', 500, 1, 0, 0);
     doctor = db.prepare(`
       SELECT d.*, a.name AS area_name
       FROM doctors d
@@ -131,15 +145,19 @@ function updateDoctorProfile(body, user) {
   let doctor = db.prepare('SELECT id FROM doctors WHERE user_id = ?').get(user.id);
   if (!doctor) {
      db.prepare(`
-      INSERT INTO doctors (user_id, name, specialty, price, area_id, available)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(user.id, user.name || 'Doctor', 'General Physician', 500, 1, 0);
+      INSERT INTO doctors (user_id, name, specialty, price, area_id, available, approved)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(user.id, user.name || 'Doctor', 'General Physician', 500, 1, 0, 0);
   }
 
-  const { available, price, specialty, area_id } = body;
+  const { available, price, specialty, area_id, name } = body;
   
   let updates = [];
   let params = [];
+  if (name !== undefined) {
+    updates.push('name = ?');
+    params.push(name);
+  }
   if (available !== undefined) {
     updates.push('available = ?');
     params.push(available ? 1 : 0);
@@ -166,4 +184,124 @@ function updateDoctorProfile(body, user) {
   return getDoctorProfile(user);
 }
 
-module.exports = { listDoctors, getDoctor, compareDoctors, getDoctorProfile, updateDoctorProfile };
+/**
+ * Admin: GET /admin/pending-doctors
+ */
+function listPendingDoctors(user) {
+  if (!user || user.role !== 'admin') {
+    return { status: 403, data: { error: 'Unauthorized' } };
+  }
+  const doctors = db.prepare(`
+    SELECT d.*, a.name AS area_name
+    FROM doctors d
+    LEFT JOIN areas a ON d.area_id = a.id
+    WHERE d.approved = 0
+  `).all();
+  return { status: 200, data: doctors };
+}
+
+/**
+ * Admin: PUT /admin/approve-doctor/:id
+ */
+function approveDoctor(id, body, user) {
+  if (!user || user.role !== 'admin') {
+    return { status: 403, data: { error: 'Unauthorized' } };
+  }
+  const { approved } = body;
+  db.prepare('UPDATE doctors SET approved = ? WHERE id = ?').run(approved ? 1 : 0, id);
+  return { status: 200, data: { success: true } };
+}
+
+/**
+ * Admin: DELETE /admin/doctors/:id
+ */
+function removeDoctor(id, user) {
+  if (!user || user.role !== 'admin') {
+    return { status: 403, data: { error: 'Unauthorized' } };
+  }
+  db.prepare('DELETE FROM doctors WHERE id = ?').run(id);
+  return { status: 200, data: { success: true } };
+}
+
+/**
+ * GET /doctor/past-patients
+ */
+function getPastPatients(user) {
+  if (!user || user.role !== 'doctor') {
+    return { status: 403, data: { error: 'Unauthorized' } };
+  }
+  const doc = db.prepare('SELECT id FROM doctors WHERE user_id = ?').get(user.id);
+  if (!doc) return { status: 200, data: [] };
+
+  const patients = db.prepare(`
+    SELECT DISTINCT u.id, u.name, u.email, MAX(a.date) as lastVisit
+    FROM users u
+    JOIN appointments a ON a.user_id = u.id
+    WHERE a.doctor_id = ?
+    GROUP BY u.id
+    ORDER BY lastVisit DESC
+  `).all(doc.id);
+
+  return { status: 200, data: patients };
+}
+
+/**
+ * GET /doctor/slots
+ */
+function getSlots(user, query) {
+  let docId;
+  if (user && user.role === 'doctor' && !query.doctor_id) {
+    const doc = db.prepare('SELECT id FROM doctors WHERE user_id = ?').get(user.id);
+    if (!doc) return { status: 404, data: { error: 'Doctor profile not found' } };
+    docId = doc.id;
+  } else {
+    docId = query.doctor_id;
+  }
+
+  if (!docId) return { status: 400, data: { error: 'doctor_id required' } };
+
+  const slots = db.prepare('SELECT time, enabled FROM doctor_slots WHERE doctor_id = ?').all(docId);
+  return { status: 200, data: slots };
+}
+
+/**
+ * POST /doctor/slots
+ */
+function updateSlots(body, user) {
+  if (!user || user.role !== 'doctor') {
+    return { status: 403, data: { error: 'Unauthorized' } };
+  }
+  const doc = db.prepare('SELECT id FROM doctors WHERE user_id = ?').get(user.id);
+  if (!doc) return { status: 404, data: { error: 'Doctor profile not found' } };
+
+  const { slots } = body; // Array of {time, enabled}
+  
+  const deleteSlots = db.prepare('DELETE FROM doctor_slots WHERE doctor_id = ?');
+  const insertSlot = db.prepare('INSERT INTO doctor_slots (doctor_id, time, enabled) VALUES (?, ?, ?)');
+
+  const transaction = db.transaction((slotsData) => {
+    deleteSlots.run(doc.id);
+    for (const s of slotsData) {
+      insertSlot.run(doc.id, s.time, s.enabled ? 1 : 0);
+    }
+  });
+
+  transaction(slots);
+
+  return { status: 200, data: { success: true } };
+}
+
+module.exports = { 
+  listDoctors, 
+  getDoctor, 
+  compareDoctors, 
+  getDoctorProfile, 
+  updateDoctorProfile,
+  listPendingDoctors,
+  approveDoctor,
+  removeDoctor,
+  getPastPatients,
+  getSlots,
+  updateSlots
+};
+

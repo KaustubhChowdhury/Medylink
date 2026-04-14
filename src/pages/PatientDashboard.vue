@@ -7,13 +7,13 @@
       <div class="relative flex items-end justify-between">
         <div>
           <p class="text-[10px] font-bold text-text-mid uppercase tracking-[0.2em] mb-2 anim-fade-up">Patient Portal</p>
-          <h1 class="text-4xl font-serif font-bold text-brand-dark mb-1 anim-fade-up anim-delay-1">Good {{ greeting }}, Elena 👋</h1>
+          <h1 class="text-4xl font-serif font-bold text-brand-dark mb-1 anim-fade-up anim-delay-1">Good {{ greeting }}, {{ firstName }} 👋</h1>
           <p class="text-text-mid text-sm anim-fade-up anim-delay-2">Here's your health overview for today</p>
         </div>
         <div class="anim-fade-up anim-delay-2">
           <router-link to="/patient/profile">
             <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-dark to-brand-mid text-white flex items-center justify-center shadow-icon icon-pulse cursor-pointer font-serif font-bold text-xl hover:scale-105 transition-transform">
-              ER
+              {{ initials }}
             </div>
           </router-link>
         </div>
@@ -45,17 +45,15 @@
       <div class="space-y-3">
         <Card v-for="(apt, i) in appointments" :key="apt.id" class="!p-0 !overflow-hidden anim-fade-up" :class="`anim-delay-${i+1}`">
           <div class="flex items-stretch">
-            <!-- Date Stripe -->
             <div class="w-20 shrink-0 flex flex-col items-center justify-center py-4" :class="apt.accent">
               <p class="text-[10px] font-bold text-white/80 uppercase">{{ apt.month }}</p>
               <p class="text-2xl font-bold text-white leading-tight">{{ apt.day }}</p>
               <p class="text-[10px] font-semibold text-white/70">{{ apt.weekday }}</p>
             </div>
-            <!-- Details -->
             <div class="flex-1 p-4 flex items-center justify-between">
               <div class="flex items-center gap-4">
                 <div class="w-12 h-12 rounded-2xl bg-cream flex items-center justify-center shadow-sm font-bold text-brand-dark font-serif text-sm" :class="i === 0 ? 'icon-pulse' : ''">
-                  {{ apt.doctor.split(' ')[1][0] }}{{ apt.doctor.split(' ')[2]?.[0] || '' }}
+                  {{ apt.doctorInitial }}
                 </div>
                 <div>
                   <h4 class="text-sm font-bold text-brand-dark">{{ apt.doctor }}</h4>
@@ -69,6 +67,7 @@
             </div>
           </div>
         </Card>
+        <p v-if="!appointments.length" class="text-center text-text-mid text-sm py-8">No upcoming appointments. <router-link to="/patient/book" class="text-brand-green font-semibold hover:underline">Book one now →</router-link></p>
       </div>
     </div>
 
@@ -107,12 +106,70 @@
   </div>
 </template>
 <script setup>
-import { computed, markRaw } from 'vue'
+import { ref, computed, markRaw, onMounted } from 'vue'
 import Card from '../components/Card.vue'
 import {
   CalendarIcon, ClockIcon, FolderIcon, BellIcon, ExclamationTriangleIcon,
   UserCircleIcon, HeartIcon, SunIcon, BeakerIcon, DocumentTextIcon, FireIcon
 } from '@heroicons/vue/24/outline'
+
+const userName = ref('Patient')
+const appointments = ref([])
+
+onMounted(async () => {
+  // Load user name from localStorage
+  try {
+    const userStr = localStorage.getItem('user')
+    if (userStr) {
+      const user = JSON.parse(userStr)
+      userName.value = user.name || 'Patient'
+    }
+  } catch (e) {}
+
+  // Fetch real upcoming appointments
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch('http://localhost:3001/appointments', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    if (res.ok) {
+      const data = await res.json()
+      const accentColors = [
+        'bg-gradient-to-b from-brand-dark to-brand-mid',
+        'bg-gradient-to-b from-brand-green to-brand-light',
+        'bg-gradient-to-b from-brand-mid to-brand-green',
+      ]
+      const tokenColors = ['text-brand-green', 'text-brand-mid', 'text-brand-dark']
+      const upcoming = (Array.isArray(data) ? data : []).filter(a => a.status === 'upcoming')
+      appointments.value = upcoming.map((apt, i) => {
+        const d = new Date(apt.date)
+        const doctorName = apt.doctor_name ? 'Dr. ' + apt.doctor_name : 'Doctor'
+        const nameParts = doctorName.split(' ')
+        return {
+          id: apt.id,
+          doctor: doctorName,
+          doctorInitial: nameParts.length > 1 ? nameParts[1][0] : 'D',
+          specialty: apt.doctor_specialty || 'General',
+          time: apt.time,
+          month: d.toLocaleDateString('en', { month: 'short' }).toUpperCase(),
+          day: d.getDate().toString().padStart(2, '0'),
+          weekday: d.toLocaleDateString('en', { weekday: 'short' }),
+          token: i + 1,
+          accent: accentColors[i % accentColors.length],
+          tokenColor: tokenColors[i % tokenColors.length],
+        }
+      })
+    }
+  } catch (e) {
+    console.error('Failed to load appointments:', e)
+  }
+})
+
+const firstName = computed(() => userName.value.split(' ')[0])
+const initials = computed(() => {
+  const parts = userName.value.split(' ')
+  return parts.map(p => p[0]).join('').toUpperCase().slice(0, 2)
+})
 
 const greeting = computed(() => {
   const h = new Date().getHours()
@@ -121,18 +178,18 @@ const greeting = computed(() => {
   return 'evening'
 })
 
-const stats = [
-  { label: 'Heart Rate', value: '72 bpm', icon: markRaw(HeartIcon), bg: 'bg-gradient-to-br from-danger to-red-400' },
-  { label: 'Blood O₂', value: '98%', icon: markRaw(FireIcon), bg: 'bg-gradient-to-br from-brand-green to-brand-mid' },
-  { label: 'Reports', value: '3', icon: markRaw(DocumentTextIcon), bg: 'bg-gradient-to-br from-blue-400 to-blue-500' },
-  { label: 'Reminders', value: '2', icon: markRaw(BellIcon), bg: 'bg-gradient-to-br from-warn to-yellow-500' },
-]
+const medCount = computed(() => {
+  try {
+    const saved = localStorage.getItem('medlink_medications')
+    if (saved) return JSON.parse(saved).length
+  } catch (e) {}
+  return 0
+})
 
-const appointments = [
-  { id: 1, doctor: 'Dr. Helena Vance', specialty: 'Cardiology', time: '09:30 AM', month: 'OCT', day: '06', weekday: 'Mon', token: 7, accent: 'bg-gradient-to-b from-brand-dark to-brand-mid', tokenColor: 'text-brand-green' },
-  { id: 2, doctor: 'Dr. Raj Singh', specialty: 'Neurology', time: '02:00 PM', month: 'OCT', day: '12', weekday: 'Sun', token: 3, accent: 'bg-gradient-to-b from-brand-green to-brand-light', tokenColor: 'text-brand-mid' },
-  { id: 3, doctor: 'Dr. Sarah Connor', specialty: 'General', time: '11:00 AM', month: 'OCT', day: '18', weekday: 'Sat', token: 5, accent: 'bg-gradient-to-b from-brand-mid to-brand-green', tokenColor: 'text-brand-dark' },
-]
+const stats = computed(() => [
+  { label: 'Appointments', value: appointments.value.length.toString(), icon: markRaw(DocumentTextIcon), bg: 'bg-gradient-to-br from-blue-400 to-blue-500' },
+  { label: 'Reminders', value: medCount.value.toString(), icon: markRaw(BellIcon), bg: 'bg-gradient-to-br from-warn to-yellow-500' },
+])
 
 const quickLinks = [
   { label: 'Book', to: '/patient/book', icon: markRaw(CalendarIcon), gradient: 'bg-gradient-to-br from-brand-green to-brand-mid' },

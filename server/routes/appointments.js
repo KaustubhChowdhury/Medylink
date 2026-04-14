@@ -63,13 +63,23 @@ function listAppointments(user, query) {
 
   let sql = `
     SELECT a.*, d.name AS doctor_name, d.specialty AS doctor_specialty,
-           d.price AS doctor_price, ar.name AS area_name
+           d.price AS doctor_price, ar.name AS area_name, u.name AS patient_name
     FROM appointments a
     LEFT JOIN doctors d ON a.doctor_id = d.id
     LEFT JOIN areas ar ON d.area_id = ar.id
-    WHERE a.user_id = ?
+    LEFT JOIN users u ON a.user_id = u.id
   `;
-  const params = [user.id];
+  const params = [];
+
+  if (user.role === 'doctor') {
+    const doc = db.prepare('SELECT id FROM doctors WHERE user_id = ?').get(user.id);
+    if (!doc) return { status: 200, data: [] };
+    sql += ' WHERE a.doctor_id = ?';
+    params.push(doc.id);
+  } else {
+    sql += ' WHERE a.user_id = ?';
+    params.push(user.id);
+  }
 
   if (query && query.status) {
     sql += ' AND a.status = ?';

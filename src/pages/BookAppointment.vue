@@ -111,14 +111,14 @@ const doctors = ref([])
 
 onMounted(async () => {
   try {
-    const res = await fetch('http://localhost:3001/doctors?available=1')
+    const res = await fetch('http://localhost:3001/doctors')
     if (res.ok) {
-      const { data } = await res.json()
-      doctors.value = data.map(d => ({
+      const data = await res.json()
+      doctors.value = (Array.isArray(data) ? data : []).map(d => ({
         id: d.id,
         name: 'Dr. ' + d.name,
         specialization: d.specialty || 'General',
-        available: true
+        available: d.available === 1
       }))
     }
   } catch (err) {
@@ -131,18 +131,69 @@ const dates = Array.from({ length: 7 }, (_, i) => {
   return { value: d.toISOString().split('T')[0], day: d.toLocaleDateString('en', { weekday: 'short' }), num: d.getDate() }
 })
 
-const slots = (() => {
+const slots = ref([])
+const currentSlotLabel = computed(() => {
+  if (!slots.value.length) return '09:00'
+  return slots.value[slotIndex.value]?.time || slots.value[0].time
+})
+
+const selectDoctor = async (doc) => {
+  selectedDoctor.value = doc
+  selectedDate.value = dates[0].value
+  
+  // Fetch specific slots for this doctor
+  try {
+    const res = await fetch(`http://localhost:3001/doctor/slots?doctor_id=${doc.id}`)
+    if (res.ok) {
+      const data = await res.json()
+      const enabledOnly = data.filter(s => s.enabled === 1)
+      if (enabledOnly.length) {
+        slots.value = enabledOnly
+      } else {
+        // Fallback to default 9-5 slots
+        slots.value = generateDefaultSlots()
+      }
+    } else {
+      slots.value = generateDefaultSlots()
+    }
+  } catch (err) {
+    slots.value = generateDefaultSlots()
+  }
+  
+  slotIndex.value = Math.floor(slots.value.length / 2)
+  step.value = 2
+}
+
+const generateDefaultSlots = () => {
   const s = []
   for (let m = 540; m < 1020; m += 10) {
     const h = Math.floor(m / 60).toString().padStart(2, '0')
     const min = (m % 60).toString().padStart(2, '0')
-    s.push(`${h}:${min}`)
+    s.push({ time: `${h}:${min}` })
   }
   return s
-})()
-const currentSlotLabel = computed(() => slots[slotIndex.value] || '09:00')
-const selectDoctor = (doc) => { selectedDoctor.value = doc; selectedDate.value = dates[0].value; step.value = 2 }
-const confirmBooking = () => { step.value = 3 }
+}
+
+const confirmBooking = async () => { 
+  try {
+    const token = localStorage.getItem('token')
+    await fetch('http://localhost:3001/book-appointment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        doctor_id: selectedDoctor.value.id,
+        date: selectedDate.value,
+        time: currentSlotLabel.value
+      })
+    })
+  } catch (err) {
+    console.error('Booking failed to sync:', err)
+  }
+  step.value = 3 
+}
 </script>
 <style scoped>
 .scrollbar-hide::-webkit-scrollbar { display: none; }

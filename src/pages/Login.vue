@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-brand-cream px-4 relative overflow-hidden">
+  <div class="min-h-screen flex flex-col items-center justify-center bg-brand-cream px-4 py-10 relative overflow-x-hidden overflow-y-auto">
     <!-- Background Art -->
     <div class="absolute inset-0 pointer-events-none">
       <div class="absolute -top-20 -left-20 w-96 h-96 bg-brand-green/8 rounded-full blur-[100px] animate-pulse" style="animation-duration:6s"></div>
@@ -10,8 +10,13 @@
     <div class="z-10 w-full max-w-sm">
       <!-- Brand -->
       <div class="text-center mb-8 anim-fade-up">
-        <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-brand-dark to-brand-mid text-white flex items-center justify-center mx-auto mb-5 shadow-icon icon-pulse">
-          <span class="text-3xl font-serif font-bold">M</span>
+        <div class="w-16 h-16 rounded-[1.25rem] bg-gradient-to-br from-brand-dark to-[#40916C] text-white flex items-center justify-center mx-auto mb-5 shadow-[0_8px_30px_rgba(27,67,50,0.3)] icon-pulse relative overflow-hidden group">
+          <svg class="w-10 h-10 text-white transform transition-transform duration-700 group-hover:rotate-180" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="12" stroke-linecap="square" stroke-linejoin="miter">
+            <path d="M 35,50 L 35,25 L 50,10 L 65,25 L 65,65" />
+            <path d="M 50,35 L 75,35 L 90,50 L 75,65 L 35,65" />
+            <path d="M 65,50 L 65,75 L 50,90 L 35,75 L 35,35" />
+            <path d="M 50,65 L 25,65 L 10,50 L 25,35 L 65,35" />
+          </svg>
         </div>
         <h1 class="text-3xl font-serif font-bold text-brand-dark">MedyLink</h1>
         <p class="text-text-mid text-sm mt-1">Healthcare, reimagined.</p>
@@ -34,7 +39,7 @@
           <!-- Role Selection -->
           <div>
             <label class="block text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-2">I am a</label>
-            <div class="grid gap-2" :class="isLoginMode ? 'grid-cols-3' : 'grid-cols-2'">
+            <div class="grid gap-2 grid-cols-2">
               <button type="button" @click="role = 'patient'"
                 class="py-3 rounded-xl text-xs font-bold uppercase tracking-wide border-2 transition-all"
                 :class="role === 'patient' ? 'bg-brand-dark text-white border-brand-dark shadow-btn scale-[1.02]' : 'bg-cream text-text-mid border-brand-pale/40 hover:border-brand-green'">
@@ -45,21 +50,42 @@
                 :class="role === 'doctor' ? 'bg-brand-dark text-white border-brand-dark shadow-btn scale-[1.02]' : 'bg-cream text-text-mid border-brand-pale/40 hover:border-brand-green'">
                 Doctor
               </button>
-              <button v-if="isLoginMode" type="button" @click="role = 'admin'"
-                class="py-3 rounded-xl text-xs font-bold uppercase tracking-wide border-2 transition-all"
-                :class="role === 'admin' ? 'bg-brand-dark text-white border-brand-dark shadow-btn scale-[1.02]' : 'bg-cream text-text-mid border-brand-pale/40 hover:border-brand-green'">
-                Admin
-              </button>
             </div>
           </div>
 
           <!-- Sign Up Additional Fields -->
           <template v-if="!isLoginMode">
-            <div>
-              <label class="block text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-2">Full Name</label>
-              <input v-model="name" type="text"
-                class="w-full bg-cream border-2 border-brand-pale/40 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-green transition-colors"
-                placeholder="Jane Doe" :required="!isLoginMode" />
+            <div class="space-y-4">
+              <div>
+                <label class="block text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-2">Full Name</label>
+                <input v-model="name" type="text"
+                  class="w-full bg-cream border-2 border-brand-pale/40 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-green transition-colors"
+                  placeholder="Jane Doe" :required="!isLoginMode" />
+              </div>
+              
+              <!-- Medical ID for Doctors -->
+              <div v-if="role === 'doctor'" class="anim-fade-up">
+                <label class="block text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-2">Medical License ID</label>
+                <input v-model="medicalId" type="text"
+                  class="w-full bg-cream border-2 border-brand-pale/40 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-green transition-colors mb-3"
+                  placeholder="MED-12345-KL" :required="role === 'doctor' && !isLoginMode" />
+                
+                <label class="block text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-2">Attach ID Document (Image/PDF)</label>
+                <div class="relative group">
+                  <input type="file" @change="handleFileChange" accept="image/*,.pdf"
+                    class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                  <div class="w-full bg-cream border-2 border-dashed border-brand-pale/50 rounded-xl px-4 py-3 text-xs text-text-mid flex items-center justify-center gap-2 group-hover:border-brand-green transition-all">
+                    <CloudArrowUpIcon class="w-4 h-4 text-brand-green" />
+                    {{ fileName || 'Click to upload document' }}
+                  </div>
+                </div>
+                <p v-if="fileName" class="text-[9px] text-brand-green mt-1 font-bold">Successfully attached!</p>
+                
+                <p class="text-[9px] text-text-mid mt-3 flex items-center gap-1 leading-tight">
+                  <ShieldCheckIcon class="w-2.5 h-2.5" />
+                  Documents are required for admin verification and network approval.
+                </p>
+              </div>
             </div>
           </template>
 
@@ -87,7 +113,7 @@
       <!-- Test Accounts -->
       <div v-if="isLoginMode" class="mt-6 anim-fade-up anim-delay-2">
         <p class="text-center text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-3">Quick Access — Test Accounts</p>
-        <div class="grid grid-cols-3 gap-3">
+        <div class="grid grid-cols-2 gap-3 max-w-[250px] mx-auto">
           <button @click="quickLogin('patient@demo.com', 'demo1234', 'patient')"
             class="bg-white border-2 border-brand-pale/30 rounded-2xl p-4 text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-brand-green transition-all group">
             <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-green to-brand-mid flex items-center justify-center mx-auto mb-2 shadow-sm group-hover:shadow-icon transition-shadow">
@@ -106,16 +132,13 @@
             <!-- In demo DB we don't have doctor@demo.com account. Just mock this button for UI testing -->
             <p class="text-[9px] text-text-light mt-0.5">doctor@test</p>
           </button>
-
-          <button @click="quickLogin('admin@demo.com', 'admin1234', 'admin')"
-            class="bg-white border-2 border-brand-pale/30 rounded-2xl p-4 text-center hover:shadow-card-hover hover:-translate-y-1 hover:border-brand-green transition-all group">
-            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-gray-700 to-gray-500 flex items-center justify-center mx-auto mb-2 shadow-sm group-hover:shadow-icon transition-shadow">
-              <ShieldCheckIcon class="w-5 h-5 text-white" />
-            </div>
-            <p class="text-xs font-bold text-brand-dark">Admin</p>
-            <p class="text-[9px] text-text-light mt-0.5">admin@demo.com</p>
-          </button>
         </div>
+      </div>
+
+      <div class="mt-6 text-center anim-fade-up anim-delay-3">
+        <router-link to="/admin/login" class="text-xs font-semibold text-brand-dark hover:underline transition-all">
+          Are you an admin? Sign in here
+        </router-link>
       </div>
 
       <p class="text-center text-[9px] text-text-light mt-6 anim-fade-up anim-delay-3">v2.0 — Built for Hackathon 2026</p>
@@ -124,15 +147,30 @@
 </template>
 <script setup>
 import { ref, inject, watch } from 'vue'
-import { UserIcon, BriefcaseIcon, ShieldCheckIcon } from '@heroicons/vue/24/outline'
+import { UserIcon, BriefcaseIcon, ShieldCheckIcon, CloudArrowUpIcon } from '@heroicons/vue/24/outline'
 
 const isLoginMode = ref(true)
 const name = ref('')
 const userId = ref('') // Used as email
 const password = ref('')
 const role = ref('patient')
+const medicalId = ref('')
+const medicalIdFile = ref('')
+const fileName = ref('')
 const loading = ref(false)
 const errorMsg = ref('')
+
+const handleFileChange = (e) => {
+  const file = e.target.files[0]
+  if (!file) return
+  
+  fileName.value = file.name
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    medicalIdFile.value = event.target.result
+  }
+  reader.readAsDataURL(file)
+}
 
 const login = inject('login')
 
@@ -157,6 +195,10 @@ const handleSubmit = async () => {
   if (!isLoginMode.value) {
     payload.name = name.value
     payload.role = role.value
+    if (role.value === 'doctor') {
+      payload.medical_id = medicalId.value
+      payload.medical_id_file = medicalIdFile.value
+    }
   }
 
   try {
@@ -199,14 +241,14 @@ const quickLogin = async (email, pass, r) => {
     
     if (!res.ok) throw new Error('Not found');
     
-    // Valid account, execute standard login via handleSubmit
-    handleSubmit();
+    // Valid account — await so token is stored before navigation
+    await handleSubmit();
   } catch (err) {
     // If not found, create the default demo account right now
     isLoginMode.value = false;
     name.value = r === 'doctor' ? 'Dr. Demo' : (r === 'admin' ? 'Admin Demo' : 'Patient Demo');
     role.value = r;
-    handleSubmit();
+    await handleSubmit();
   }
 }
 </script>

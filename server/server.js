@@ -3,10 +3,28 @@ const { URL } = require('url');
 
 // ── Route modules ─────────────────────────────────────────────
 const { signup, login, verifyToken } = require('./routes/auth');
-const { listDoctors, getDoctor, compareDoctors, getDoctorProfile, updateDoctorProfile } = require('./routes/doctors');
+const { 
+  listDoctors, 
+  getDoctor, 
+  compareDoctors, 
+  getDoctorProfile, 
+  updateDoctorProfile,
+  listPendingDoctors,
+  approveDoctor,
+  removeDoctor,
+  getPastPatients,
+  getSlots,
+  updateSlots
+} = require('./routes/doctors');
 const { listAreas, getAreaDoctors, toggleShortage } = require('./routes/areas');
 const { bookAppointment, listAppointments, cancelAppointment, getBookedSlots } = require('./routes/appointments');
-const { getHistory, addRecord } = require('./routes/history');
+const { 
+  getHistory, 
+  addRecord, 
+  getPatientHistoryForDoctor, 
+  addRecordByDoctor 
+} = require('./routes/history');
+const { getAdminStats } = require('./routes/admin');
 
 const PORT = 3001;
 const ALLOWED_ORIGIN = 'http://localhost:5173';
@@ -72,6 +90,23 @@ const server = http.createServer(async (req, res) => {
   try {
     // ── AUTH ROUTES (public) ──────────────────────────────────
 
+    if (method === 'GET' && pathname.startsWith('/doctor/patient-history/')) {
+      const patientId = pathname.split('/').pop();
+      const result = getPatientHistoryForDoctor(patientId, user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    if (method === 'POST' && pathname === '/doctor/add-patient-record') {
+      const body = await parseBody(req);
+      const result = addRecordByDoctor(body, user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    if (method === 'GET' && pathname === '/admin/stats') {
+      const result = getAdminStats(user);
+      return sendJSON(res, result.status, result.data);
+    }
+
     if (method === 'POST' && pathname === '/signup') {
       const body = await parseBody(req);
       const result = signup(body);
@@ -86,6 +121,24 @@ const server = http.createServer(async (req, res) => {
 
     // ── DOCTOR ROUTES ────────────────────────────────────────
 
+    if (method === 'GET' && pathname === '/admin/pending-doctors') {
+      const result = listPendingDoctors(user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    const approveDoctorMatch = pathname.match(/^\/admin\/approve-doctor\/(\d+)$/);
+    if (method === 'PUT' && approveDoctorMatch) {
+      const body = await parseBody(req);
+      const result = approveDoctor(parseInt(approveDoctorMatch[1], 10), body, user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    const removeDoctorMatch = pathname.match(/^\/admin\/doctors\/(\d+)$/);
+    if (method === 'DELETE' && removeDoctorMatch) {
+      const result = removeDoctor(parseInt(removeDoctorMatch[1], 10), user);
+      return sendJSON(res, result.status, result.data);
+    }
+
     if (method === 'GET' && pathname === '/doctor/me') {
       const result = getDoctorProfile(user);
       return sendJSON(res, result.status, result.data);
@@ -94,6 +147,22 @@ const server = http.createServer(async (req, res) => {
     if (method === 'PUT' && pathname === '/doctor/me') {
       const body = await parseBody(req);
       const result = updateDoctorProfile(body, user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    if (method === 'GET' && pathname === '/doctor/past-patients') {
+      const result = getPastPatients(user);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    if (method === 'GET' && pathname === '/doctor/slots') {
+      const result = getSlots(user, query);
+      return sendJSON(res, result.status, result.data);
+    }
+
+    if (method === 'POST' && pathname === '/doctor/slots') {
+      const body = await parseBody(req);
+      const result = updateSlots(body, user);
       return sendJSON(res, result.status, result.data);
     }
 

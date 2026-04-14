@@ -9,7 +9,7 @@ const JWT_SECRET = 'medlink_secret_2024';
  * Body: { name, email, password, role }
  */
 function signup(body) {
-  const { name, email, password, role } = body;
+  const { name, email, password, role, medical_id, medical_id_file } = body;
 
   if (!name || !email || !password) {
     return { status: 400, data: { error: 'Name, email, and password are required' } };
@@ -36,9 +36,9 @@ function signup(body) {
   if (userRole === 'doctor') {
     // Insert default profile for Doctor
     db.prepare(`
-      INSERT INTO doctors (user_id, name, specialty, price, area_id, available)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(user.id, name, 'General Physician', 500, 1, 0); // Default to not available
+      INSERT INTO doctors (user_id, name, specialty, price, area_id, available, approved, medical_id, medical_id_file)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(user.id, name, 'General Physician', 500, 1, 0, 0, medical_id || '', medical_id_file || ''); // Default to not available and not approved
   }
 
   const token = jwt.sign({ id: user.id, role: user.role, name: user.name }, JWT_SECRET, { expiresIn: '7d' });

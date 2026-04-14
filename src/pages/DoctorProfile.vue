@@ -15,8 +15,12 @@
         <h2 class="text-xl font-bold text-brand-dark mb-0.5" v-if="profile">{{ profile.name }}</h2>
         <h2 class="text-xl font-bold text-brand-dark mb-0.5" v-else>Loading...</h2>
         <p class="text-xs text-text-mid mb-4">Doctor ID: {{ profile ? profile.id : '...' }}</p>
-        <div class="inline-flex items-center gap-1.5 bg-brand-pale/30 text-brand-dark text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg">
+        
+        <div v-if="profile && profile.approved" class="inline-flex items-center gap-1.5 bg-brand-pale/30 text-brand-dark text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg">
           <span class="w-2 h-2 rounded-full bg-brand-green"></span> Verified Practitioner
+        </div>
+        <div v-else-if="profile" class="inline-flex items-center gap-1.5 bg-warn/10 text-warn text-[10px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg">
+          <span class="w-2 h-2 rounded-full bg-warn opacity-70"></span> Verification Pending
         </div>
       </Card>
 
@@ -24,6 +28,11 @@
       <Card class="!p-6 md:col-span-2 anim-fade-up anim-delay-1">
         <p class="text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-5">Professional Details</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4" v-if="profile">
+          <div>
+            <label class="block text-xs text-text-light mb-1">Full Name</label>
+            <input v-model="form.name" type="text"
+              class="w-full bg-cream border-2 border-brand-pale/40 rounded-xl px-4 py-2.5 text-sm text-brand-dark font-medium focus:outline-none focus:border-brand-green transition-colors" />
+          </div>
           <div>
             <label class="block text-xs text-text-light mb-1">Specialty</label>
             <input v-model="form.specialty" type="text"
@@ -68,6 +77,7 @@ const profile = ref(null)
 const auth = ref(null)
 
 const form = ref({
+  name: '',
   specialty: '',
   price: 0,
   area_id: 1
@@ -81,9 +91,10 @@ const fetchProfile = async () => {
       }
     })
     if (res.ok) {
-      const { data } = await res.json()
+      const data = await res.json()
       profile.value = data
       form.value = {
+        name: data.name || '',
         specialty: data.specialty || '',
         price: data.price || 0,
         area_id: data.area_id || 1
@@ -106,7 +117,7 @@ const saveProfile = async () => {
     })
     
     if (res.ok) {
-      const { data } = await res.json()
+      const data = await res.json()
       profile.value = data
       saved.value = true
       setTimeout(() => saved.value = false, 2500)
@@ -116,11 +127,22 @@ const saveProfile = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // Small delay to ensure token is written by login redirect
+  await new Promise(r => setTimeout(r, 100))
   const token = localStorage.getItem('token')
   if (token) {
     auth.value = { token }
     fetchProfile()
+  } else {
+    // Retry once after a short delay (race condition with Quick Access login)
+    setTimeout(() => {
+      const retryToken = localStorage.getItem('token')
+      if (retryToken) {
+        auth.value = { token: retryToken }
+        fetchProfile()
+      }
+    }, 500)
   }
 })
 </script>

@@ -44,4 +44,42 @@ function addRecord(body, user) {
   return { status: 201, data: newRecord };
 }
 
-module.exports = { getHistory, addRecord };
+/**
+ * GET /doctor/patient-history/:patientId
+ * Auth: doctor only
+ */
+function getPatientHistoryForDoctor(patientUserId, user) {
+  if (!user || user.role !== 'doctor') {
+    return { status: 403, data: { error: 'Unauthorized' } };
+  }
+
+  const records = db.prepare(
+    'SELECT * FROM medical_history WHERE user_id = ? ORDER BY date DESC'
+  ).all(patientUserId);
+
+  return { status: 200, data: records };
+}
+
+/**
+ * POST /doctor/add-patient-record
+ * Body: { patient_user_id, title, record, condition, date }
+ * Auth: doctor only
+ */
+function addRecordByDoctor(body, user) {
+  if (!user || user.role !== 'doctor') {
+    return { status: 403, data: { error: 'Unauthorized' } };
+  }
+
+  const { patient_user_id, title, record, condition, date } = body;
+  if (!patient_user_id || !title || !record || !date) {
+    return { status: 400, data: { error: 'Required fields missing' } };
+  }
+
+  db.prepare(
+    'INSERT INTO medical_history (user_id, title, record, condition, date) VALUES (?, ?, ?, ?, ?)'
+  ).run(patient_user_id, title, record, condition || null, date);
+
+  return { status: 201, data: { success: true } };
+}
+
+module.exports = { getHistory, addRecord, getPatientHistoryForDoctor, addRecordByDoctor };

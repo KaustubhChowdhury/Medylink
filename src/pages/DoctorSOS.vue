@@ -64,7 +64,7 @@ const fetchAvailability = async () => {
       }
     })
     if (res.ok) {
-      const { data } = await res.json()
+      const data = await res.json()
       available.value = data.available === 1
     }
   } catch (err) {
