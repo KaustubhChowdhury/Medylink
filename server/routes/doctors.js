@@ -281,9 +281,14 @@ function updateSlots(body, user) {
 
   const transaction = db.transaction((slotsData) => {
     deleteSlots.run(doc.id);
+    let hasEnabled = false;
     for (const s of slotsData) {
+      if (s.enabled) hasEnabled = true;
       insertSlot.run(doc.id, s.time, s.enabled ? 1 : 0);
     }
+    
+    // Auto-update availability status
+    db.prepare('UPDATE doctors SET available = ? WHERE id = ?').run(hasEnabled ? 1 : 0, doc.id);
   });
 
   transaction(slots);

@@ -20,7 +20,6 @@
     <!-- Active Content -->
     <div v-else>
       <div class="relative mb-10">
-        <div class="absolute -top-6 -left-4 w-32 h-32 bg-brand-green/10 rounded-full blur-3xl"></div>
         <h1 class="text-3xl font-serif font-bold text-brand-dark mb-1 relative">Appointment Queue</h1>
         <p class="text-text-mid text-sm relative">Manage today's patients</p>
       </div>
@@ -75,7 +74,7 @@
           <Card class="!p-5">
             <p class="text-[10px] font-bold text-text-mid uppercase tracking-[0.15em] mb-4">Patient Details</p>
             <div class="flex items-center gap-4 mb-4">
-              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-dark to-brand-mid text-white flex items-center justify-center font-bold font-serif text-xl shadow-icon icon-float">
+              <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-dark to-brand-mid text-white flex items-center justify-center font-bold font-serif text-xl shadow-icon transition-transform">
                 {{ getInitials(activePatient.name) }}
               </div>
               <div>
