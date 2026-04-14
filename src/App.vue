@@ -25,6 +25,19 @@ const router = useRouter()
 const userRole = ref(null)
 provide('userRole', userRole)
 
+import { onMounted } from 'vue'
+onMounted(() => {
+  const user = localStorage.getItem('user')
+  if (user) {
+    try {
+      const parsed = JSON.parse(user)
+      if (parsed && parsed.role) {
+        userRole.value = parsed.role
+      }
+    } catch (e) {}
+  }
+})
+
 const login = (role) => {
   userRole.value = role
   if (role === 'doctor') router.push('/doctor/dashboard')
